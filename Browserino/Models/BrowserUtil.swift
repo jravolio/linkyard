@@ -69,12 +69,27 @@ class BrowserUtil {
             return
         }
 
+        if bundle.bundleIdentifier == ChromiumProfileUtil.arcBundleID {
+            if profileDirectory != nil || isIncognito {
+                if openArcURLs(urls, isIncognito: isIncognito, profileDirectory: profileDirectory) {
+                    return
+                }
+            }
+
+            NSWorkspace.shared.open(
+                urls,
+                withApplicationAt: app,
+                configuration: NSWorkspace.OpenConfiguration()
+            )
+            return
+        }
+
         let configuration = NSWorkspace.OpenConfiguration()
-        let isChrome = bundle.bundleIdentifier == ChromeProfileUtil.chromeBundleID
+        let supportsProfiles = ChromiumProfileUtil.source(for: bundle.bundleIdentifier) != nil
 
         var args: [String] = []
 
-        if let profileDirectory, isChrome {
+        if let profileDirectory, supportsProfiles {
             args.append("--profile-directory=\(profileDirectory)")
         }
 
@@ -92,5 +107,75 @@ class BrowserUtil {
             withApplicationAt: app,
             configuration: configuration
         )
+    }
+
+    private static func openArcURLs(_ urls: [URL], isIncognito: Bool, profileDirectory: String?) -> Bool {
+        guard !urls.isEmpty else {
+            return false
+        }
+
+        if isIncognito {
+            return runArcScript("""
+            tell application id "\(ChromiumProfileUtil.arcBundleID)"
+                activate
+                make new window with properties {incognito:true}
+                tell front window
+            \(arcTabCommands(for: urls))
+                end tell
+            end tell
+            """)
+        }
+
+        guard let spaceID = ChromiumProfileUtil.arcSpaceID(for: profileDirectory) else {
+            return false
+        }
+
+        return runArcScript("""
+        tell application id "\(ChromiumProfileUtil.arcBundleID)"
+            activate
+            if (count of windows) is 0 then make new window
+            tell front window
+                set didFocus to false
+                repeat with arcSpace in spaces
+                    if id of arcSpace is "\(escapeAppleScriptString(spaceID))" then
+                        tell arcSpace to focus
+                        set didFocus to true
+                        exit repeat
+                    end if
+                end repeat
+                if didFocus is false then error "Arc space not found"
+        \(arcTabCommands(for: urls))
+            end tell
+        end tell
+        """)
+    }
+
+    private static func arcTabCommands(for urls: [URL]) -> String {
+        urls.map {
+            "                make new tab with properties {URL:\"\(escapeAppleScriptString($0.absoluteString))\"}"
+        }
+        .joined(separator: "\n")
+    }
+
+    private static func runArcScript(_ source: String) -> Bool {
+        guard let script = NSAppleScript(source: source) else {
+            return false
+        }
+
+        var error: NSDictionary?
+        script.executeAndReturnError(&error)
+
+        if let error {
+            print("Failed to open Arc with AppleScript: \(error)")
+            return false
+        }
+
+        return true
+    }
+
+    private static func escapeAppleScriptString(_ value: String) -> String {
+        value
+            .replacingOccurrences(of: "\\", with: "\\\\")
+            .replacingOccurrences(of: "\"", with: "\\\"")
     }
 }

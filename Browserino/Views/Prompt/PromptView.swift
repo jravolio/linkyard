@@ -23,6 +23,8 @@ struct PromptView: View {
     @AppStorage("shortcuts") private var shortcuts: [String: String] = [:]
     @AppStorage("chromeProfiles") private var chromeProfiles: [ChromeProfile] = []
     @AppStorage("chromeProfilesEnabled") private var chromeProfilesEnabled: Bool = true
+    @AppStorage("arcProfiles") private var arcProfiles: [ChromeProfile] = []
+    @AppStorage("arcProfilesEnabled") private var arcProfilesEnabled: Bool = true
 
     @AppStorage("copy_closeAfterCopy") private var closeAfterCopy: Bool = false
     @AppStorage("copy_alternativeShortcut") private var alternativeShortcut: Bool = false
@@ -49,6 +51,37 @@ struct PromptView: View {
         browsers.filter { !hiddenBrowsers.contains($0) }
     }
 
+    private func profileSettings(for bundleID: String) -> (profiles: [ChromeProfile], enabled: Bool)? {
+        switch bundleID {
+        case ChromiumProfileUtil.chromeBundleID:
+            return (chromeProfiles, chromeProfilesEnabled)
+        case ChromiumProfileUtil.arcBundleID:
+            return (arcProfiles, arcProfilesEnabled)
+        default:
+            return nil
+        }
+    }
+
+    private func refreshArcProfilesIfNeeded() {
+        guard ChromiumProfileUtil.shouldRefreshProfiles(
+            for: ChromiumProfileUtil.arcSource,
+            profiles: arcProfiles
+        ) else {
+            return
+        }
+
+        let refreshedProfiles = ChromiumProfileUtil.refreshProfiles(
+            for: ChromiumProfileUtil.arcSource,
+            existing: arcProfiles
+        )
+        shortcuts = ChromiumProfileUtil.migrateShortcuts(
+            shortcuts,
+            for: ChromiumProfileUtil.arcSource,
+            profiles: refreshedProfiles
+        )
+        arcProfiles = refreshedProfiles
+    }
+
     var pickerBrowserItems: [PickerBrowserItem] {
         var items: [PickerBrowserItem] = []
 
@@ -56,17 +89,17 @@ struct PromptView: View {
             guard let bundle = Bundle(url: browser) else { continue }
             let bundleID = bundle.bundleIdentifier ?? ""
 
-            if chromeProfilesEnabled && bundleID == ChromeProfileUtil.chromeBundleID {
-                let visibleProfiles = chromeProfiles.filter { !$0.isHidden }
+            if let settings = profileSettings(for: bundleID), settings.enabled {
+                let visibleProfiles = settings.profiles.filter { !$0.isHidden }
                 if !visibleProfiles.isEmpty {
                     for profile in visibleProfiles {
-                        let profileID = "\(bundleID)::\(profile.directoryName)"
-                        let chromeName = bundle.infoDictionary?["CFBundleName"] as? String ?? "Google Chrome"
+                        let profileID = "\(bundleID)::\(bundleID == ChromiumProfileUtil.arcBundleID ? profile.selectionID : profile.directoryName)"
+                        let browserName = bundle.infoDictionary?["CFBundleName"] as? String ?? "Browser"
                         items.append(PickerBrowserItem(
                             id: profileID,
                             appURL: browser,
-                            displayName: "\(chromeName) - \(profile.displayName)",
-                            profileDirectory: profile.directoryName,
+                            displayName: "\(browserName) - \(profile.displayName)",
+                            profileDirectory: bundleID == ChromiumProfileUtil.arcBundleID ? profile.selectionID : profile.directoryName,
                             shortcutKey: shortcuts[profileID]
                         ))
                     }
@@ -250,6 +283,7 @@ struct PromptView: View {
                     .keyboardShortcut(.cancelAction)
                 }
                 .onAppear {
+                    refreshArcProfilesIfNeeded()
                     focused.toggle()
                     withAnimation(.interactiveSpring(duration: 0.3)) {
                         opacityAnimation = 1

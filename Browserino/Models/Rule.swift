@@ -11,4 +11,6 @@ struct Rule: Hashable, Codable {
     var regex: String
     var app: URL
     var profileDirectory: String? = nil
+    var sourceApp: URL? = nil
+    var sourceWindowTitleRegex: String? = nil
 }

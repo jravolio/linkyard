@@ -18,7 +18,7 @@ struct AddRule: View {
                 )
                 .opacity(0)
             
-            Text("Add a new rule by typing regex and selecting an app.")
+            Text("Add a rule by matching a URL, optional source app/window, and selecting a target app.")
                 .foregroundStyle(.secondary)
                 .frame(maxWidth: .infinity, alignment: .leading)
             
@@ -42,22 +42,47 @@ struct AddRule: View {
 struct RuleItem: View {
     @Binding var rule: Rule
     @State private var editPresented = false
+
+    private var sourceDescription: String? {
+        var parts: [String] = []
+
+        if let sourceApp = rule.sourceApp,
+           let sourceBundle = Bundle(url: sourceApp),
+           let sourceName = sourceBundle.infoDictionary?["CFBundleName"] as? String {
+            parts.append("from \(sourceName)")
+        }
+
+        if let sourceWindowTitleRegex = rule.sourceWindowTitleRegex,
+           !sourceWindowTitleRegex.isEmpty {
+            parts.append("window matches /\(sourceWindowTitleRegex)/")
+        }
+
+        return parts.isEmpty ? nil : parts.joined(separator: ", ")
+    }
     
     var body: some View {
         let bundle = Bundle(url: rule.app)!
 
         HStack {
-            Button(action: {
-                editPresented.toggle()
-            }) {
-                Label(rule.regex, systemImage: "pencil")
-                    .font(
-                        .system(size: 14)
-                    )
-                    .foregroundStyle(.primary)
+            VStack(alignment: .leading, spacing: 4) {
+                Button(action: {
+                    editPresented.toggle()
+                }) {
+                    Label(rule.regex, systemImage: "pencil")
+                        .font(
+                            .system(size: 14)
+                        )
+                        .foregroundStyle(.primary)
+                }
+                .buttonStyle(.plain)
+
+                if let sourceDescription {
+                    Text(sourceDescription)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
             }
-            .buttonStyle(.plain)
-            
+             
             Spacer()
             
             
@@ -99,7 +124,7 @@ struct RulesTab: View {
                 }
             }
             
-            Text("Type regex and choose app in which links will be opened without prompt")
+            Text("Type a URL regex and choose where matching links open. Source conditions can route links from specific apps or Slack workspaces.")
                 .font(.subheadline)
                 .foregroundStyle(.primary.opacity(0.5))
                 .frame(maxWidth: .infinity)
