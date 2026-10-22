@@ -1,0 +1,4 @@
+{"sidebar":{"containers":[{"global":{}},{"spaces":[
+ {"id":"DEMO-PERSONAL","title":"Personal","profile":{"default":true},"containerIDs":[]},
+ {"id":"DEMO-WORK","title":"Work","profile":{"custom":{"_0":{"directoryBasename":"Profile 1"}}},"containerIDs":[]}
+],"orderedSpaceIDs":["DEMO-PERSONAL","DEMO-WORK"]}]}}

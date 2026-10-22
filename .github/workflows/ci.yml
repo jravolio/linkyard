@@ -1,0 +1,18 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build
+        run: |
+          xcodebuild -project Browserino.xcodeproj -scheme Browserino -configuration Release \
+            -destination 'generic/platform=macOS' -derivedDataPath build/ci \
+            CODE_SIGN_IDENTITY=- CODE_SIGNING_REQUIRED=NO build
