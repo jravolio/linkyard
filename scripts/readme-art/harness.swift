@@ -73,6 +73,6 @@ enum DemoHarness {
         app.appearance = NSAppearance(named: .darkAqua)
         render(PromptView(urls: [URL(string: "https://github.com/acme/website/pull/42")!]), size: nil, to: "\(out)/picker.png")
         render(ProfilesTab().padding(.top, 12).background(Color(nsColor: .windowBackgroundColor)), size: CGSize(width: 760, height: 1240), to: "\(out)/settings-profiles.png")
-        render(RulesTab().padding(.top, 12).background(Color(nsColor: .windowBackgroundColor)), size: CGSize(width: 760, height: 400), to: "\(out)/settings-rules.png")
+        render(RulesTab().padding(.top, 12).background(Color(nsColor: .windowBackgroundColor)), size: CGSize(width: 760, height: 350), to: "\(out)/settings-rules.png")
     }
 }

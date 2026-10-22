@@ -37,15 +37,16 @@ Linkyard is a tiny link router for macOS. Make it your default browser, and ever
 - 🚦 **Rules**: match a link by URL pattern, by the app it was clicked in, or by that app's window title (handy for telling Slack workspaces apart), and send it to a browser and profile without asking.
 - 📱 **Apps**: open links for certain sites straight in their Mac app.
 - ⌨️ **Keyboard first**: ↑↓ picks the identity, ←→ the browser, ↵ opens, ⇧↵ opens a private window, ⌥⌘C copies the link, Esc closes. Hold ⌘ while clicking a link to skip your rules.
-- 🎯 **Opens where you look**: at the cursor or in the center of the screen.
+- 🎯 **Opens where you look**: at the cursor or in the center of the screen, instantly or with a Fade, Rise, Pop or Dia-style Glow you can preview.
+- 🔎 **Searchable Settings**: find any setting, browser, profile, rule or app from the sidebar search.
 - 🔁 **Coming from Browserino?** Linkyard imports your Browserino settings the first time it starts.
 
 ## 📸 Screenshots
 
 <table>
   <tr>
-    <td width="50%" align="center"><img src="docs/assets/screenshots/settings-profiles.png" alt="Settings, Profiles tab: Dia profiles and Zen containers with their logos"><br><sub>Profiles, each with its own logo</sub></td>
-    <td width="50%" align="center"><img src="docs/assets/screenshots/settings-rules.png" alt="Settings, Rules tab: links from Slack, Teams and Telegram sent to Dia, and GitHub links sent to Zen"><br><sub>Rules by link, source app or Slack workspace</sub></td>
+    <td width="50%" align="center"><img src="docs/assets/screenshots/settings-profiles.png" alt="Settings, Profiles: Dia profiles and Zen containers with their logos"><br><sub>Profiles, each with its own logo</sub></td>
+    <td width="50%" align="center"><img src="docs/assets/screenshots/settings-rules.png" alt="Settings, Rules: links from Slack, Teams and Telegram sent to Dia, and GitHub links sent to Zen"><br><sub>Rules by link, source app or Slack workspace</sub></td>
   </tr>
 </table>
 
@@ -67,7 +68,7 @@ Open Settings → **Profiles**. Linkyard detects your Chrome profiles, Arc space
 <details>
 <summary><b>Dia</b></summary>
 
-Dia doesn't accept the usual command-line flag for picking a profile, so Linkyard asks Dia through AppleScript to open the link in the profile with that name. Keep Dia's profile names the same as the ones in Linkyard.
+Dia doesn't accept the usual command-line flag for picking a profile, so Linkyard asks Dia through Apple Events to open the link in the profile with that name. Keep Dia's profile names the same as the ones in Linkyard.
 </details>
 
 <details>
