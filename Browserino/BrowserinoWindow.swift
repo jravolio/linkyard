@@ -12,11 +12,11 @@ class BrowserinoWindow: NSPanel {
     static let selectorWidth: CGFloat = 250
     static let selectorHeight: CGFloat = 200
 
-    private var popTimer: Timer?
+    private var zoomTimer: Timer?
 
     /// AppKit has no public way to scale a whole window with its shadow; Arc and Dia use this private method.
     /// The transform maps the screen to the window, so drawing the window at scale `s` takes a transform of `1 / s`.
-    /// Nil when the method is missing or its signature changed, and Pop falls back to the system's window animation.
+    /// Nil when the method is missing or its signature changed, and Zoom falls back to the system's window animation.
     private static let setTransform: ((NSWindow, CGAffineTransform, CGPoint) -> Void)? = {
         let selector = NSSelectorFromString("_setTransformForAnimation:anchorPoint:")
         guard let method = class_getInstanceMethod(NSWindow.self, selector),
@@ -77,12 +77,12 @@ class BrowserinoWindow: NSPanel {
             alphaValue = 0
             makeKeyAndOrderFront(nil)
             animate(duration: 0.3) { $0.animator().alphaValue = 1 }
-        case .pop:
+        case .zoom:
             alphaValue = 0
             if let setTransform = Self.setTransform {
-                startPop(setTransform)
+                startZoom(setTransform)
                 makeKeyAndOrderFront(nil)
-                animate(duration: 0.15) { $0.animator().alphaValue = 1 }
+                animate(duration: Self.zoomDuration) { $0.animator().alphaValue = 1 }
             } else {
                 // The system's document-window animation zooms in from about 98%.
                 animationBehavior = .documentWindow
@@ -101,46 +101,46 @@ class BrowserinoWindow: NSPanel {
         }
     }
 
-    /// Scale of a damped spring from 92% to 100% (response 0.32 s, damping 0.68); nil once it has settled.
-    static func popScale(at time: TimeInterval) -> CGFloat? {
-        guard time < 0.45 else {
+    static let zoomDuration: TimeInterval = 0.25
+
+    /// Scale from 95% to 100% with no overshoot, so the picker lands once and stops; nil once it's done.
+    /// Ease-out quint stays within 0.1% of the curve the other animations use.
+    static func zoomScale(at time: TimeInterval) -> CGFloat? {
+        guard time < zoomDuration else {
             return nil
         }
 
-        let omega = 2 * Double.pi / 0.32
-        let damping = 0.68
-        let dampedOmega = omega * (1 - damping * damping).squareRoot()
-        let progress = 1 - exp(-damping * omega * time) * (cos(dampedOmega * time) + damping * omega / dampedOmega * sin(dampedOmega * time))
-        return 0.92 + 0.08 * progress
+        let progress = 1 - pow(1 - time / zoomDuration, 5)
+        return 0.95 + 0.05 * progress
     }
 
-    private func startPop(_ setTransform: @escaping (NSWindow, CGAffineTransform, CGPoint) -> Void) {
+    private func startZoom(_ setTransform: @escaping (NSWindow, CGAffineTransform, CGPoint) -> Void) {
         let anchor = CGPoint(x: frame.width / 2, y: frame.height / 2)
         let start = CACurrentMediaTime()
-        setTransform(self, CGAffineTransform(scaleX: 1 / 0.92, y: 1 / 0.92), anchor)
+        setTransform(self, CGAffineTransform(scaleX: 1 / 0.95, y: 1 / 0.95), anchor)
 
         let framesPerSecond = (screen ?? NSScreen.main)?.maximumFramesPerSecond ?? 60
         let timer = Timer(timeInterval: 1 / Double(framesPerSecond), repeats: true) { [weak self] _ in
             guard let self else {
                 return
             }
-            if let scale = Self.popScale(at: CACurrentMediaTime() - start) {
+            if let scale = Self.zoomScale(at: CACurrentMediaTime() - start) {
                 setTransform(self, CGAffineTransform(scaleX: 1 / scale, y: 1 / scale), anchor)
             } else {
                 self.resetScale()
             }
         }
         RunLoop.main.add(timer, forMode: .common)
-        popTimer = timer
+        zoomTimer = timer
     }
 
     private func resetScale() {
-        guard let popTimer else {
+        guard let zoomTimer else {
             return
         }
 
-        popTimer.invalidate()
-        self.popTimer = nil
+        zoomTimer.invalidate()
+        self.zoomTimer = nil
         Self.setTransform?(self, .identity, .zero)
     }
 

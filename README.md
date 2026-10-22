@@ -37,7 +37,7 @@ Linkyard is a tiny link router for macOS. Make it your default browser, and ever
 - 🚦 **Rules**: match a link by URL pattern, by the app it was clicked in, or by that app's window title (handy for telling Slack workspaces apart), and send it to a browser and profile without asking.
 - 📱 **Apps**: open links for certain sites straight in their Mac app.
 - ⌨️ **Keyboard first**: ↑↓ picks the identity, ←→ the browser, ↵ opens, ⇧↵ opens a private window, ⌥⌘C copies the link, Esc closes. Hold ⌘ while clicking a link to skip your rules.
-- 🎯 **Opens where you look**: at the cursor or in the center of the screen, instantly or with a Fade, Rise, Pop or Dia-style Glow you can preview.
+- 🎯 **Opens where you look**: at the cursor or in the center of the screen, instantly or with a Fade, Rise, Zoom or Dia-style Glow you can preview.
 - 🔎 **Searchable Settings**: find any setting, browser, profile, rule or app from the sidebar search.
 - 🔁 **Coming from Browserino?** Linkyard imports your Browserino settings the first time it starts.
 

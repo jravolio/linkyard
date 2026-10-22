@@ -293,13 +293,14 @@ final class SettingsSearchTests: XCTestCase {
 }
 
 final class PickerAnimationTests: XCTestCase {
-    func testPopSpringsFrom92PercentToFullSizeWithASmallOvershoot() throws {
-        XCTAssertEqual(try XCTUnwrap(BrowserinoWindow.popScale(at: 0)), 0.92, accuracy: 0.0001)
+    func testZoomGrowsFrom95PercentToFullSizeWithoutOvershoot() throws {
+        XCTAssertEqual(try XCTUnwrap(BrowserinoWindow.zoomScale(at: 0)), 0.95, accuracy: 0.0001)
 
-        let samples = stride(from: 0.0, to: 0.45, by: 0.005).compactMap(BrowserinoWindow.popScale)
-        XCTAssertLessThan(samples.max()!, 1.01)
-        XCTAssertEqual(samples.last!, 1, accuracy: 0.003)
-        XCTAssertNil(BrowserinoWindow.popScale(at: 0.45))
+        let samples = stride(from: 0.0, to: BrowserinoWindow.zoomDuration, by: 0.005).compactMap(BrowserinoWindow.zoomScale)
+        XCTAssertEqual(samples, samples.sorted())
+        XCTAssertLessThanOrEqual(samples.max()!, 1)
+        XCTAssertEqual(samples.last!, 1, accuracy: 0.001)
+        XCTAssertNil(BrowserinoWindow.zoomScale(at: BrowserinoWindow.zoomDuration))
     }
 }
 

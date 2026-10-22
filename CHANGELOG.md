@@ -5,7 +5,7 @@ Linkyard is a modified version of [Browserino](https://github.com/AlexStrNik/Bro
 ## 1.1.0
 
 ### Added
-- A choice of picker animations in Settings → Picker: none (the default), Fade, Rise, Pop and Glow, with a Preview button. Pop scales the whole window the way Arc and Dia do, through a private AppKit method, and falls back to the system's window animation if that method is gone. Reduce Motion turns every animation into a fade.
+- A choice of picker animations in Settings → Picker: none (the default), Fade, Rise, Zoom and Glow, with a Preview button. Zoom scales the whole window through the private AppKit method Arc and Dia use, and falls back to the system's window animation if that method is gone. Reduce Motion turns every animation into a fade.
 - Search in Settings, covering every setting plus your browsers, profiles, rules and apps.
 - Rules can be reordered by dragging one onto another; the first rule that matches still wins.
 

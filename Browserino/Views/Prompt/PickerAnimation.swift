@@ -6,7 +6,7 @@
 import AppKit
 
 enum PickerAnimation: String, CaseIterable, Identifiable {
-    case none, fade, rise, pop, glow
+    case none, fade, rise, zoom, glow
 
     var id: Self { self }
 
@@ -15,7 +15,7 @@ enum PickerAnimation: String, CaseIterable, Identifiable {
         case .none: "None"
         case .fade: "Fade"
         case .rise: "Rise"
-        case .pop: "Pop"
+        case .zoom: "Zoom"
         case .glow: "Glow"
         }
     }
@@ -30,7 +30,7 @@ enum PickerAnimation: String, CaseIterable, Identifiable {
         case .none: "Appears instantly. The fastest."
         case .fade: "Fades in."
         case .rise: "Slides up into place, like Arc's windows."
-        case .pop: "Zooms toward you with a slight spring, like Arc and Dia."
+        case .zoom: "Zooms in toward you as it fades in."
         case .glow: "Fades in with a brief glow around the edge, like Dia."
         }
     }
