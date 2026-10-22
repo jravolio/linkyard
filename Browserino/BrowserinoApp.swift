@@ -26,6 +26,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     var statusBarItem: NSStatusItem!
     
     func applicationDidFinishLaunching(_ aNotification: Notification) {
+        importBrowserinoSettingsIfNeeded()
         refreshStoredArcProfilesIfNeeded()
         sourceDetectionLogger.promptForAccessibilityPermissionIfNeeded(reason: "launch")
         rememberSourceApplication(NSWorkspace.shared.frontmostApplication)
@@ -60,6 +61,21 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         }
 
         lastSourceApplication = SourceApplicationSnapshot(application: application)
+    }
+
+    /// Linkyard has its own bundle ID, so on first launch it copies an existing Browserino setup.
+    /// The Accessibility prompt flag stays behind: Linkyard needs its own permission.
+    private func importBrowserinoSettingsIfNeeded() {
+        let defaults = UserDefaults.standard
+        guard defaults.object(forKey: "browsers") == nil,
+              let browserino = defaults.persistentDomain(forName: "xyz.alexstrnik.Browserino")
+        else {
+            return
+        }
+
+        for (key, value) in browserino where !key.hasPrefix("NS") && key != "sourceDetectionAccessibilityPrompted" {
+            defaults.set(value, forKey: key)
+        }
     }
 
     private func refreshStoredArcProfilesIfNeeded() {
@@ -181,7 +197,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         if urls.count == 1 {
             let url = urls.first!
             
-            if url.scheme == "browserino" && url.host == "open" {
+            if url.scheme == "linkyard" && url.host == "open" {
                 if let components = URLComponents(url: url, resolvingAgainstBaseURL: false),
                    let queryItems = components.queryItems,
                    let encodedUrl = queryItems.first(where: { $0.name == "url" })?.value,
@@ -370,7 +386,7 @@ private struct SourceRuleContext {
 
 private final class SourceDetectionLogger {
     private let logger = Logger(
-        subsystem: "xyz.alexstrnik.Browserino",
+        subsystem: Bundle.main.bundleIdentifier ?? "io.github.jravolio.Linkyard",
         category: "SourceDetection"
     )
     private let accessibilityPromptedKey = "sourceDetectionAccessibilityPrompted"
@@ -383,7 +399,7 @@ private final class SourceDetectionLogger {
 
         return libraryURL
             .appendingPathComponent("Logs", isDirectory: true)
-            .appendingPathComponent("Browserino", isDirectory: true)
+            .appendingPathComponent("Linkyard", isDirectory: true)
             .appendingPathComponent("source-detection.jsonl")
     }()
 

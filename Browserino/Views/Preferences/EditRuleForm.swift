@@ -84,7 +84,7 @@ struct RuleForm: View {
     @State private var sourceAppPresented = false
 
     @State private var regex: String = ""
-    @State private var testUrls: String = "https://github.com/AlexStrNik/Browserino\nhttps://x.com/alexstrnik"
+    @State private var testUrls: String = "https://github.com/jravolio/linkyard\nhttps://example.com"
     @State private var url: URL?
     @State private var profileDirectory: String? = nil
     @State private var sourceApp: URL? = nil

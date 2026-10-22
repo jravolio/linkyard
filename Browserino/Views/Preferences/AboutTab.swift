@@ -17,7 +17,7 @@ struct AboutTab: View {
                 .frame(width: 128, height: 128)
             
             Text(
-                "Browserino v\(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as! String)"
+                "Linkyard v\(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as! String)"
             )
             .font(.title)
             .frame(maxWidth: .infinity)
@@ -27,17 +27,29 @@ struct AboutTab: View {
             
             Button(action: {
                 NSWorkspace.shared.open(
-                    URL(string: "https://github.com/AlexStrNik/Browserino/")!
+                    URL(string: "https://github.com/jravolio/linkyard")!
                 )
             }) {
-                Text("https://github.com/AlexStrNik/Browserino/")
+                Text("https://github.com/jravolio/linkyard")
             }
             .buttonStyle(.link)
             
             Spacer()
                 .frame(height: 16)
             
-            Text("Thanks to @byt3m4st3r, @mihado, @ventz and others for contributions!")
+            Text("A community continuation of Browserino by Aleksandr Strizhnev (@AlexStrNik).")
+                .foregroundStyle(.secondary)
+
+            Button(action: {
+                NSWorkspace.shared.open(
+                    URL(string: "https://github.com/AlexStrNik/Browserino")!
+                )
+            }) {
+                Text("https://github.com/AlexStrNik/Browserino")
+            }
+            .buttonStyle(.link)
+
+            Text("Thanks to @byt3m4st3r, @mihado, @ventz, @motilevy and others for contributions!")
                 .foregroundStyle(.secondary)
             
             Spacer()

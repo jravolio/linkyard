@@ -34,7 +34,7 @@
 		</dict>
 	</array>
 	<key>CFBundleIconFile</key>
-	<string>Browserino</string>
+	<string>Linkyard</string>
 	<key>CFBundleURLTypes</key>
 	<array>
 		<dict>
@@ -52,10 +52,10 @@
 			<key>CFBundleTypeRole</key>
 			<string>Editor</string>
 			<key>CFBundleURLName</key>
-			<string>Browserino Custom Scheme</string>
+			<string>Linkyard Custom Scheme</string>
 			<key>CFBundleURLSchemes</key>
 			<array>
-				<string>browserino</string>
+				<string>linkyard</string>
 			</array>
 		</dict>
 	</array>
@@ -64,6 +64,6 @@
 		<string>NSUserActivityTypeBrowsingWeb</string>
 	</array>
 	<key>NSAppleEventsUsageDescription</key>
-	<string>Browserino needs to control Arc to open links in selected Arc spaces.</string>
+	<string>Linkyard controls Arc and Dia to open links in the space or profile you pick.</string>
 </dict>
 </plist>

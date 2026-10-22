@@ -215,7 +215,7 @@ private struct ProfileIconPicker: View {
         }
 
         let folder = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
-            .appendingPathComponent("Browserino/ProfileIcons", isDirectory: true)
+            .appendingPathComponent("Linkyard/ProfileIcons", isDirectory: true)
         let destination = folder.appendingPathComponent("\(UUID().uuidString).\(url.pathExtension)")
 
         do {

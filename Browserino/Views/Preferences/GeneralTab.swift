@@ -124,7 +124,7 @@ struct GeneralTab: View {
                     }
                     .disabled(isDefault)
                     
-                    Text("Make Browserino default browser to use it")
+                    Text("Make Linkyard default browser to use it")
                         .font(.callout)
                         .opacity(0.5)
                 }
@@ -183,7 +183,7 @@ struct GeneralTab: View {
                     }
                     
                     Toggle(isOn: $showInMenuBar) {
-                        Text("Show Browserino in menu bar")
+                        Text("Show Linkyard in menu bar")
                             .font(.callout)
                             .opacity(0.5)
                     }
@@ -203,7 +203,7 @@ struct GeneralTab: View {
 
                 VStack(alignment: .leading) {
                     Toggle(isOn: $launchAtLogin) {
-                        Text("Launch Browserino at login")
+                        Text("Launch Linkyard at login")
                             .font(.callout)
                             .opacity(0.5)
                     }
