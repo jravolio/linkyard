@@ -84,8 +84,24 @@ class BrowserUtil {
             return
         }
 
+        if bundle.bundleIdentifier == ChromiumProfileUtil.diaBundleID,
+           let profileDirectory,
+           !isIncognito,
+           openDiaURLs(urls, profileName: profileDirectory) {
+            return
+        }
+
+        if bundle.bundleIdentifier == ChromiumProfileUtil.zenBundleID, let profileDirectory, !isIncognito {
+            NSWorkspace.shared.open(
+                urls.compactMap { zenContainerURL(for: $0, container: profileDirectory) },
+                withApplicationAt: app,
+                configuration: NSWorkspace.OpenConfiguration()
+            )
+            return
+        }
+
         let configuration = NSWorkspace.OpenConfiguration()
-        let supportsProfiles = ChromiumProfileUtil.source(for: bundle.bundleIdentifier) != nil
+        let supportsProfiles = ChromiumProfileUtil.source(for: bundle.bundleIdentifier)?.kind == .chromium
 
         var args: [String] = []
 
@@ -115,7 +131,7 @@ class BrowserUtil {
         }
 
         if isIncognito {
-            return runArcScript("""
+            return runAppleScript("""
             tell application id "\(ChromiumProfileUtil.arcBundleID)"
                 activate
                 make new window with properties {incognito:true}
@@ -130,7 +146,7 @@ class BrowserUtil {
             return false
         }
 
-        return runArcScript("""
+        return runAppleScript("""
         tell application id "\(ChromiumProfileUtil.arcBundleID)"
             activate
             if (count of windows) is 0 then make new window
@@ -150,6 +166,48 @@ class BrowserUtil {
         """)
     }
 
+    private static func openDiaURLs(_ urls: [URL], profileName: String) -> Bool {
+        guard !urls.isEmpty else {
+            return false
+        }
+
+        let tabCommands = urls.map {
+            "                set newTab to make new tab at end of tabs with properties {URL:\"\(escapeAppleScriptString($0.absoluteString))\"}"
+        }
+        .joined(separator: "\n")
+
+        return runAppleScript("""
+        tell application id "\(ChromiumProfileUtil.diaBundleID)"
+            activate
+            if (count of windows) is 0 then make new window
+            tell front window
+                set targetProfile to missing value
+                repeat with diaProfile in profiles
+                    if name of diaProfile is "\(escapeAppleScriptString(profileName))" then set targetProfile to diaProfile
+                end repeat
+                if targetProfile is missing value then error "Dia profile not found"
+                tell targetProfile
+                    focus
+        \(tabCommands)
+                end tell
+                tell newTab to focus
+            end tell
+        end tell
+        """)
+    }
+
+    /// Handled by the "Open external links in a container" Firefox add-on, which must be installed in Zen.
+    private static func zenContainerURL(for url: URL, container: String) -> URL? {
+        let allowed = CharacterSet(charactersIn: "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~")
+        guard let name = container.addingPercentEncoding(withAllowedCharacters: allowed),
+              let target = url.absoluteString.addingPercentEncoding(withAllowedCharacters: allowed)
+        else {
+            return nil
+        }
+
+        return URL(string: "ext+container:name=\(name)&url=\(target)")
+    }
+
     private static func arcTabCommands(for urls: [URL]) -> String {
         urls.map {
             "                make new tab with properties {URL:\"\(escapeAppleScriptString($0.absoluteString))\"}"
@@ -157,7 +215,7 @@ class BrowserUtil {
         .joined(separator: "\n")
     }
 
-    private static func runArcScript(_ source: String) -> Bool {
+    private static func runAppleScript(_ source: String) -> Bool {
         guard let script = NSAppleScript(source: source) else {
             return false
         }
@@ -166,7 +224,7 @@ class BrowserUtil {
         script.executeAndReturnError(&error)
 
         if let error {
-            print("Failed to open Arc with AppleScript: \(error)")
+            print("Failed to open browser with AppleScript: \(error)")
             return false
         }
 

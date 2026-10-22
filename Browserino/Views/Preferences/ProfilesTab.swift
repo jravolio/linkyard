@@ -4,12 +4,17 @@
 //
 
 import SwiftUI
+import UniformTypeIdentifiers
 
 struct ProfilesTab: View {
     @AppStorage("chromeProfiles") private var chromeProfiles: [ChromeProfile] = []
     @AppStorage("chromeProfilesEnabled") private var chromeProfilesEnabled: Bool = true
     @AppStorage("arcProfiles") private var arcProfiles: [ChromeProfile] = []
     @AppStorage("arcProfilesEnabled") private var arcProfilesEnabled: Bool = true
+    @AppStorage("diaProfiles") private var diaProfiles: [ChromeProfile] = []
+    @AppStorage("diaProfilesEnabled") private var diaProfilesEnabled: Bool = true
+    @AppStorage("zenProfiles") private var zenProfiles: [ChromeProfile] = []
+    @AppStorage("zenProfilesEnabled") private var zenProfilesEnabled: Bool = true
 
     var body: some View {
         VStack(alignment: .leading) {
@@ -25,9 +30,21 @@ struct ProfilesTab: View {
                     profiles: $arcProfiles,
                     profilesEnabled: $arcProfilesEnabled
                 )
+
+                ProfileSourceSection(
+                    source: ChromiumProfileUtil.diaSource,
+                    profiles: $diaProfiles,
+                    profilesEnabled: $diaProfilesEnabled
+                )
+
+                ProfileSourceSection(
+                    source: ChromiumProfileUtil.zenSource,
+                    profiles: $zenProfiles,
+                    profilesEnabled: $zenProfilesEnabled
+                )
             }
 
-            Text("Detect Chrome profiles and Arc spaces and show them as separate picker items. Assign shortcuts and hide entries you don't use.")
+            Text("Detect Chrome and Dia profiles, Arc spaces and Zen containers and show them as separate picker items. Click an icon to give a profile its own logo, assign shortcuts and hide entries you don't use.")
                 .font(.subheadline)
                 .foregroundStyle(.primary.opacity(0.5))
                 .frame(maxWidth: .infinity)
@@ -65,10 +82,26 @@ private struct ProfileSourceSection: View {
         hasDetected = true
     }
 
+    /// List rows must have IDs unique across every section; Dia and Zen can both have a "Personal" profile.
+    private var rows: [(index: Int, profile: ChromeProfile, id: String)] {
+        profiles.enumerated().map { ($0.offset, $0.element, "\(source.bundleID)::\(sourceKey($0.element))") }
+    }
+
+    private func sourceKey(_ profile: ChromeProfile) -> String {
+        source.detectsArcSpaces ? profile.selectionID : profile.directoryName
+    }
+
     private func displayName(at index: Int) -> Binding<String> {
         Binding(
             get: { profiles[index].displayName },
             set: { profiles[index].displayName = $0 }
+        )
+    }
+
+    private func iconPath(at index: Int) -> Binding<String?> {
+        Binding(
+            get: { profiles[index].iconPath },
+            set: { profiles[index].iconPath = $0 }
         )
     }
 
@@ -99,8 +132,13 @@ private struct ProfileSourceSection: View {
                         .padding(10)
                 }
 
-                ForEach(Array(profiles.enumerated()), id: \.element.selectionID) { index, profile in
+                ForEach(rows, id: \.id) { index, profile, _ in
                     HStack {
+                        ProfileIconPicker(
+                            appPath: ChromiumProfileUtil.appURL(for: source)?.path,
+                            iconPath: iconPath(at: index)
+                        )
+
                         TextField("Display name", text: displayName(at: index))
                             .font(.system(size: 14))
                             .frame(maxWidth: 200)
@@ -141,6 +179,51 @@ private struct ProfileSourceSection: View {
             if !hasDetected && isInstalled && shouldRefreshProfiles {
                 detectProfiles()
             }
+        }
+    }
+}
+
+private struct ProfileIconPicker: View {
+    let appPath: String?
+
+    @Binding var iconPath: String?
+
+    var body: some View {
+        Button(action: chooseIcon) {
+            if let appPath {
+                ProfileIcon(appPath: appPath, iconPath: iconPath, size: 20)
+            } else {
+                Image(systemName: "photo")
+            }
+        }
+        .buttonStyle(.plain)
+        .help("Choose an icon for this profile")
+        .contextMenu {
+            if iconPath != nil {
+                Button("Remove Icon") {
+                    iconPath = nil
+                }
+            }
+        }
+    }
+
+    private func chooseIcon() {
+        let panel = NSOpenPanel()
+        panel.allowedContentTypes = [.image]
+        guard panel.runModal() == .OK, let url = panel.url else {
+            return
+        }
+
+        let folder = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+            .appendingPathComponent("Browserino/ProfileIcons", isDirectory: true)
+        let destination = folder.appendingPathComponent("\(UUID().uuidString).\(url.pathExtension)")
+
+        do {
+            try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+            try FileManager.default.copyItem(at: url, to: destination)
+            iconPath = destination.path
+        } catch {
+            print("Failed to save profile icon: \(error)")
         }
     }
 }

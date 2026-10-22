@@ -18,6 +18,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     
     @AppStorage("rules") private var rules: [Rule] = []
     @AppStorage("showInMenuBar") private var showInMenuBar: Bool = true
+    @AppStorage("prompt_centerOnScreen") private var centerOnScreen: Bool = false
     @AppStorage("arcProfiles") private var arcProfiles: [ChromeProfile] = []
     @AppStorage("shortcuts") private var shortcuts: [String: String] = [:]
     
@@ -224,31 +225,39 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
             selectorWindow = BrowserinoWindow()
         }
         
-        let screen = getScreenWithMouse()!.visibleFrame
-        
-        selectorWindow?.setFrameOrigin(
-            NSPoint(
-                x: clamp(
-                    min: screen.minX + 20,
-                    max: screen.maxX - selectorWindow!.frame.width - 20,
-                    value: NSEvent.mouseLocation.x - selectorWindow!.frame.width / 2
-                ),
-                y: clamp(
-                    min: screen.minY + 20,
-                    max: screen.maxY - selectorWindow!.frame.height - 20,
-                    value: NSEvent.mouseLocation.y - (selectorWindow!.frame.height - 30)
-                )
-            )
-        )
-        
-        NSApplication.shared.activate(ignoringOtherApps: true)
-        selectorWindow!.deactivateDelay()
-        
-        selectorWindow!.contentView = NSHostingView(
+        let promptView = NSHostingView(
             rootView: PromptView(
                 urls: processedUrls
             )
         )
+        if #available(macOS 14.0, *) {
+            promptView.safeAreaRegions = []
+        }
+        selectorWindow!.contentView = promptView
+        selectorWindow!.setFrame(NSRect(origin: selectorWindow!.frame.origin, size: promptView.fittingSize), display: false)
+
+        let screen = getScreenWithMouse()!.visibleFrame
+        let size = selectorWindow!.frame.size
+
+        selectorWindow?.setFrameOrigin(
+            centerOnScreen
+                ? NSPoint(x: screen.midX - size.width / 2, y: screen.midY - size.height / 2)
+                : NSPoint(
+                    x: clamp(
+                        min: screen.minX + 20,
+                        max: screen.maxX - size.width - 20,
+                        value: NSEvent.mouseLocation.x - size.width / 2
+                    ),
+                    y: clamp(
+                        min: screen.minY + 20,
+                        max: screen.maxY - size.height - 20,
+                        value: NSEvent.mouseLocation.y - (size.height - 30)
+                    )
+                )
+        )
+        
+        NSApplication.shared.activate(ignoringOtherApps: true)
+        selectorWindow!.deactivateDelay()
         
         selectorWindow!.makeKeyAndOrderFront(nil)
         selectorWindow!.isReleasedWhenClosed = false

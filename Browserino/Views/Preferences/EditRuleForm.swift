@@ -73,6 +73,10 @@ struct RuleForm: View {
     @AppStorage("chromeProfilesEnabled") private var chromeProfilesEnabled: Bool = true
     @AppStorage("arcProfiles") private var arcProfiles: [ChromeProfile] = []
     @AppStorage("arcProfilesEnabled") private var arcProfilesEnabled: Bool = true
+    @AppStorage("diaProfiles") private var diaProfiles: [ChromeProfile] = []
+    @AppStorage("diaProfilesEnabled") private var diaProfilesEnabled: Bool = true
+    @AppStorage("zenProfiles") private var zenProfiles: [ChromeProfile] = []
+    @AppStorage("zenProfilesEnabled") private var zenProfilesEnabled: Bool = true
     @AppStorage("shortcuts") private var shortcuts: [String: String] = [:]
     @AppStorage("browsers") private var browsers: [URL] = []
 
@@ -123,6 +127,10 @@ struct RuleForm: View {
             return chromeProfiles
         case ChromiumProfileUtil.arcBundleID:
             return arcProfiles
+        case ChromiumProfileUtil.diaBundleID:
+            return diaProfiles
+        case ChromiumProfileUtil.zenBundleID:
+            return zenProfiles
         default:
             return []
         }
@@ -183,6 +191,17 @@ struct RuleForm: View {
                         id: targetOptionID(appURL: browser, profileDirectory: profile.selectionID),
                         appURL: browser,
                         profileDirectory: profile.selectionID,
+                        displayName: "\(browserName) - \(profile.displayName)"
+                    )
+                })
+            case ChromiumProfileUtil.diaBundleID where diaProfilesEnabled,
+                 ChromiumProfileUtil.zenBundleID where zenProfilesEnabled:
+                let profiles = bundleID == ChromiumProfileUtil.diaBundleID ? diaProfiles : zenProfiles
+                options.append(contentsOf: profiles.map { profile in
+                    RuleTargetOption(
+                        id: targetOptionID(appURL: browser, profileDirectory: profile.directoryName),
+                        appURL: browser,
+                        profileDirectory: profile.directoryName,
                         displayName: "\(browserName) - \(profile.displayName)"
                     )
                 })

@@ -43,6 +43,7 @@ struct GeneralTab: View {
     @AppStorage("copy_alternativeShortcut") private var alternativeShortcut: Bool = false
     @AppStorage("showInMenuBar") private var showInMenuBar: Bool = true
     @AppStorage("apps_atTop") private var appsAtTop: Bool = true
+    @AppStorage("prompt_centerOnScreen") private var centerOnScreen: Bool = false
     
     func defaultBrowser() -> String? {
         guard let browserUrl = NSWorkspace.shared.urlForApplication(toOpen: URL(string: "https:")!) else {
@@ -183,6 +184,12 @@ struct GeneralTab: View {
                     
                     Toggle(isOn: $showInMenuBar) {
                         Text("Show Browserino in menu bar")
+                            .font(.callout)
+                            .opacity(0.5)
+                    }
+
+                    Toggle(isOn: $centerOnScreen) {
+                        Text("Open the picker in the center of the screen instead of at the cursor")
                             .font(.callout)
                             .opacity(0.5)
                     }

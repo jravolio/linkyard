@@ -12,10 +12,19 @@ struct ChromeProfile: Codable, Hashable {
     var isHidden: Bool = false
     var arcSpaceID: String? = nil
     var arcSpaceTitle: String? = nil
+    var iconPath: String? = nil
 
     var selectionID: String {
         arcSpaceID ?? directoryName
     }
+}
+
+enum ProfileSourceKind {
+    case chromium
+    case arc
+    /// Dia refuses `--profile-directory`, so its profiles are opened by name with AppleScript.
+    case dia
+    case zenContainers
 }
 
 struct ChromiumProfileSource: Hashable, Identifiable {
@@ -23,21 +32,25 @@ struct ChromiumProfileSource: Hashable, Identifiable {
     let displayName: String
     let localStatePath: String
     let profileLabel: String
-    let detectsArcSpaces: Bool
+    let kind: ProfileSourceKind
 
     var id: String { bundleID }
+
+    var detectsArcSpaces: Bool { kind == .arc }
 }
 
 class ChromiumProfileUtil {
     static let chromeBundleID = "com.google.Chrome"
     static let arcBundleID = "company.thebrowser.Browser"
+    static let diaBundleID = "company.thebrowser.dia"
+    static let zenBundleID = "app.zen-browser.zen"
 
     static let chromeSource = ChromiumProfileSource(
         bundleID: chromeBundleID,
         displayName: "Google Chrome",
         localStatePath: "~/Library/Application Support/Google/Chrome/Local State",
         profileLabel: "profiles",
-        detectsArcSpaces: false
+        kind: .chromium
     )
 
     static let arcSource = ChromiumProfileSource(
@@ -45,10 +58,26 @@ class ChromiumProfileUtil {
         displayName: "Arc",
         localStatePath: "~/Library/Application Support/Arc/User Data/Local State",
         profileLabel: "spaces",
-        detectsArcSpaces: true
+        kind: .arc
     )
 
-    static let sources = [chromeSource, arcSource]
+    static let diaSource = ChromiumProfileSource(
+        bundleID: diaBundleID,
+        displayName: "Dia",
+        localStatePath: "~/Library/Application Support/Dia/User Data/Local State",
+        profileLabel: "profiles",
+        kind: .dia
+    )
+
+    static let zenSource = ChromiumProfileSource(
+        bundleID: zenBundleID,
+        displayName: "Zen",
+        localStatePath: "~/Library/Application Support/zen",
+        profileLabel: "containers",
+        kind: .zenContainers
+    )
+
+    static let sources = [chromeSource, arcSource, diaSource, zenSource]
 
     static func source(for bundleID: String?) -> ChromiumProfileSource? {
         guard let bundleID else {
@@ -67,13 +96,24 @@ class ChromiumProfileUtil {
     }
 
     static func detectProfiles(for source: ChromiumProfileSource) -> [ChromeProfile] {
-        if source.detectsArcSpaces {
+        switch source.kind {
+        case .arc:
             let spaces = detectArcSpaces()
             if !spaces.isEmpty {
                 return spaces
             }
+        case .dia:
+            return detectDiaProfiles(source: source)
+        case .zenContainers:
+            return detectZenContainers(source: source)
+        case .chromium:
+            break
         }
 
+        return localStateProfiles(for: source)
+    }
+
+    private static func localStateProfiles(for source: ChromiumProfileSource) -> [ChromeProfile] {
         let localStatePath = NSString(string: source.localStatePath)
             .expandingTildeInPath
 
@@ -98,6 +138,54 @@ class ChromiumProfileUtil {
             )
         }
         .sorted { $0.directoryName < $1.directoryName }
+    }
+
+    private static func detectDiaProfiles(source: ChromiumProfileSource) -> [ChromeProfile] {
+        if !NSRunningApplication.runningApplications(withBundleIdentifier: diaBundleID).isEmpty,
+           let script = NSAppleScript(source: """
+           tell application id "\(diaBundleID)"
+               if (count of windows) is 0 then return {}
+               return name of every profile of front window
+           end tell
+           """) {
+            var error: NSDictionary?
+            let result = script.executeAndReturnError(&error)
+            let names = (0..<result.numberOfItems).compactMap { result.atIndex($0 + 1)?.stringValue }
+            if error == nil, !names.isEmpty {
+                return names.map { ChromeProfile(directoryName: $0, displayName: $0) }
+            }
+        }
+
+        // Dia shows its Default profile as "Personal" whatever name Local State still has.
+        return localStateProfiles(for: source).map { profile in
+            let name = profile.directoryName == "Default" ? "Personal" : profile.displayName
+            return ChromeProfile(directoryName: name, displayName: name)
+        }
+    }
+
+    private static func detectZenContainers(source: ChromiumProfileSource) -> [ChromeProfile] {
+        let root = NSString(string: source.localStatePath).expandingTildeInPath
+        guard let installs = try? String(contentsOfFile: "\(root)/installs.ini", encoding: .utf8),
+              let profilePath = installs.split(separator: "\n")
+                .first(where: { $0.hasPrefix("Default=") })?
+                .dropFirst("Default=".count),
+              let data = FileManager.default.contents(atPath: "\(root)/\(profilePath)/containers.json"),
+              let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let identities = json["identities"] as? [[String: Any]]
+        else {
+            return []
+        }
+
+        return identities.compactMap { identity in
+            guard identity["public"] as? Bool == true,
+                  let name = identity["name"] as? String,
+                  !name.isEmpty
+            else {
+                return nil
+            }
+
+            return ChromeProfile(directoryName: name, displayName: name)
+        }
     }
 
     static func refreshProfiles(for source: ChromiumProfileSource, existing: [ChromeProfile]) -> [ChromeProfile] {
@@ -167,7 +255,8 @@ class ChromiumProfileUtil {
                     displayName: existing.displayName,
                     isHidden: existing.isHidden,
                     arcSpaceID: profile.arcSpaceID,
-                    arcSpaceTitle: profile.arcSpaceTitle
+                    arcSpaceTitle: profile.arcSpaceTitle,
+                    iconPath: existing.iconPath
                 )
             }
 
@@ -178,7 +267,8 @@ class ChromiumProfileUtil {
                     displayName: profile.displayName,
                     isHidden: existing.isHidden,
                     arcSpaceID: profile.arcSpaceID,
-                    arcSpaceTitle: profile.arcSpaceTitle
+                    arcSpaceTitle: profile.arcSpaceTitle,
+                    iconPath: existing.iconPath
                 )
             }
 
@@ -189,7 +279,8 @@ class ChromiumProfileUtil {
                     displayName: existing.displayName,
                     isHidden: existing.isHidden,
                     arcSpaceID: profile.arcSpaceID,
-                    arcSpaceTitle: profile.arcSpaceTitle
+                    arcSpaceTitle: profile.arcSpaceTitle,
+                    iconPath: existing.iconPath
                 )
             }
 

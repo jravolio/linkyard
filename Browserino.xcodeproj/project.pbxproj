@@ -19,7 +19,6 @@
 		9830F0B92C11B09700D69C88 /* BlurredView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9830F0B82C11B09700D69C88 /* BlurredView.swift */; };
 		9830F0BB2C11DE8F00D69C88 /* PreferencesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9830F0BA2C11DE8F00D69C88 /* PreferencesView.swift */; };
 		9830F0BE2C11DEBB00D69C88 /* View+If.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9830F0BD2C11DEBB00D69C88 /* View+If.swift */; };
-		9830F0C32C11DEED00D69C88 /* ButtonStyles.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9830F0C22C11DEED00D69C88 /* ButtonStyles.swift */; };
 		9830F0C52C11DF2C00D69C88 /* BrowserinoWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9830F0C42C11DF2C00D69C88 /* BrowserinoWindow.swift */; };
 		9830F0C72C11E87300D69C88 /* Array+RawRepresentable.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9830F0C62C11E87300D69C88 /* Array+RawRepresentable.swift */; };
 		9838C9802E9BC6CF00261421 /* View+Tooltip.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9838C97F2E9BC6CB00261421 /* View+Tooltip.swift */; };
@@ -57,7 +56,6 @@
 		9830F0B82C11B09700D69C88 /* BlurredView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BlurredView.swift; sourceTree = "<group>"; };
 		9830F0BA2C11DE8F00D69C88 /* PreferencesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PreferencesView.swift; sourceTree = "<group>"; };
 		9830F0BD2C11DEBB00D69C88 /* View+If.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "View+If.swift"; sourceTree = "<group>"; };
-		9830F0C22C11DEED00D69C88 /* ButtonStyles.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ButtonStyles.swift; sourceTree = "<group>"; };
 		9830F0C42C11DF2C00D69C88 /* BrowserinoWindow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BrowserinoWindow.swift; sourceTree = "<group>"; };
 		9830F0C62C11E87300D69C88 /* Array+RawRepresentable.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Array+RawRepresentable.swift"; sourceTree = "<group>"; };
 		9838C97F2E9BC6CB00261421 /* View+Tooltip.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "View+Tooltip.swift"; sourceTree = "<group>"; };
@@ -161,7 +159,6 @@
 		9830F0BF2C11DEC900D69C88 /* Modifiers */ = {
 			isa = PBXGroup;
 			children = (
-				9830F0C22C11DEED00D69C88 /* ButtonStyles.swift */,
 			);
 			path = Modifiers;
 			sourceTree = "<group>";
@@ -296,7 +293,6 @@
 				9830F0BE2C11DEBB00D69C88 /* View+If.swift in Sources */,
 				989B17F52C16FC690039441B /* ShortcutButton.swift in Sources */,
 				986DF3C82E45F2F000D5A3C4 /* View+OnKeyPress.swift in Sources */,
-				9830F0C32C11DEED00D69C88 /* ButtonStyles.swift in Sources */,
 				9830F0B62C119CD800D69C88 /* main.swift in Sources */,
 				664FDF222CE4AA6B009766AA /* BrowserUtil.swift in Sources */,
 				9838C9802E9BC6CF00261421 /* View+Tooltip.swift in Sources */,
