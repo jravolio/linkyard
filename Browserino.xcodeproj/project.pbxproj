@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		2FE87E36256ED8F5587A8656 /* LinkyardTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE4A2DA3F144B5F30C40039A /* LinkyardTests.swift */; };
 		AA00010B2F0C700100FC6D37 /* ChromeProfile.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA00010A2F0C700100FC6D37 /* ChromeProfile.swift */; };
 		AA00010D2F0C700100FC6D37 /* ProfilesTab.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA00010C2F0C700100FC6D37 /* ProfilesTab.swift */; };
 		664FDF222CE4AA6B009766AA /* BrowserUtil.swift in Sources */ = {isa = PBXBuildFile; fileRef = 664FDF212CE4AA6B009766AA /* BrowserUtil.swift */; };
@@ -39,7 +40,19 @@
 		B9CFBE192F0C6F3D00FC6D37 /* URLExtensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = B9CFBE182F0C6F3D00FC6D37 /* URLExtensions.swift */; };
 /* End PBXBuildFile section */
 
+/* Begin PBXContainerItemProxy section */
+		5D4B13F5214948903A10F33D /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 9830F09A2C119A3000D69C88 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 9830F0A12C119A3000D69C88;
+			remoteInfo = Browserino;
+		};
+/* End PBXContainerItemProxy section */
+
 /* Begin PBXFileReference section */
+		EE4A2DA3F144B5F30C40039A /* LinkyardTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LinkyardTests.swift; sourceTree = "<group>"; };
+		7EF4AFB45C939D851AFF6C05 /* LinkyardTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = LinkyardTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		AA00010A2F0C700100FC6D37 /* ChromeProfile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChromeProfile.swift; sourceTree = "<group>"; };
 		AA00010C2F0C700100FC6D37 /* ProfilesTab.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfilesTab.swift; sourceTree = "<group>"; };
 		664FDF212CE4AA6B009766AA /* BrowserUtil.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BrowserUtil.swift; sourceTree = "<group>"; };
@@ -76,6 +89,13 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
+		9AE6F18E381F8C79C9B3ACC1 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		9830F09F2C119A3000D69C88 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -86,9 +106,18 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		70998A770F6E6FE9940B1D7F /* LinkyardTests */ = {
+			isa = PBXGroup;
+			children = (
+				EE4A2DA3F144B5F30C40039A /* LinkyardTests.swift */,
+			);
+			path = LinkyardTests;
+			sourceTree = "<group>";
+		};
 		9830F0992C119A3000D69C88 = {
 			isa = PBXGroup;
 			children = (
+				70998A770F6E6FE9940B1D7F /* LinkyardTests */,
 				9830F0A42C119A3000D69C88 /* Browserino */,
 				9830F0A32C119A3000D69C88 /* Products */,
 			);
@@ -97,6 +126,7 @@
 		9830F0A32C119A3000D69C88 /* Products */ = {
 			isa = PBXGroup;
 			children = (
+				7EF4AFB45C939D851AFF6C05 /* LinkyardTests.xctest */,
 				9830F0A22C119A3000D69C88 /* Browserino.app */,
 			);
 			name = Products;
@@ -200,6 +230,24 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
+		BDFF51583C454ED02803D0F5 /* LinkyardTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = BEE90ED8D2692FB8C8D42701 /* Build configuration list for PBXNativeTarget "LinkyardTests" */;
+			buildPhases = (
+				6ECD458F4EFD0FDCDD76B0C4 /* Sources */,
+				9AE6F18E381F8C79C9B3ACC1 /* Frameworks */,
+				D81BBD7B6E217346833ECFCD /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				2BAEB571D2E68A13750D83B0 /* PBXTargetDependency */,
+			);
+			name = LinkyardTests;
+			productName = LinkyardTests;
+			productReference = 7EF4AFB45C939D851AFF6C05 /* LinkyardTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
 		9830F0A12C119A3000D69C88 /* Browserino */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = 9830F0B12C119A3100D69C88 /* Build configuration list for PBXNativeTarget "Browserino" */;
@@ -227,6 +275,10 @@
 				LastSwiftUpdateCheck = 1530;
 				LastUpgradeCheck = 1530;
 				TargetAttributes = {
+					BDFF51583C454ED02803D0F5 = {
+						CreatedOnToolsVersion = 15.3;
+						TestTargetID = 9830F0A12C119A3000D69C88;
+					};
 					9830F0A12C119A3000D69C88 = {
 						CreatedOnToolsVersion = 15.3;
 					};
@@ -246,11 +298,19 @@
 			projectRoot = "";
 			targets = (
 				9830F0A12C119A3000D69C88 /* Browserino */,
+				BDFF51583C454ED02803D0F5 /* LinkyardTests */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
+		D81BBD7B6E217346833ECFCD /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		9830F0A02C119A3000D69C88 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -264,6 +324,14 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
+		6ECD458F4EFD0FDCDD76B0C4 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				2FE87E36256ED8F5587A8656 /* LinkyardTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		9830F09E2C119A3000D69C88 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -300,7 +368,51 @@
 		};
 /* End PBXSourcesBuildPhase section */
 
+/* Begin PBXTargetDependency section */
+		2BAEB571D2E68A13750D83B0 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 9830F0A12C119A3000D69C88 /* Browserino */;
+			targetProxy = 5D4B13F5214948903A10F33D /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
 /* Begin XCBuildConfiguration section */
+		11ADA9B45E8370149D74C181 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_IDENTITY = "-";
+				CODE_SIGN_STYLE = Manual;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 13.0;
+				MARKETING_VERSION = 1.0.0;
+				PRODUCT_BUNDLE_IDENTIFIER = io.github.jravolio.LinkyardTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Linkyard.app/Contents/MacOS/Linkyard";
+			};
+			name = Debug;
+		};
+		D65AD4343C196EB71949F8A7 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_IDENTITY = "-";
+				CODE_SIGN_STYLE = Manual;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 13.0;
+				MARKETING_VERSION = 1.0.0;
+				PRODUCT_BUNDLE_IDENTIFIER = io.github.jravolio.LinkyardTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Linkyard.app/Contents/MacOS/Linkyard";
+			};
+			name = Release;
+		};
 		9830F0AF2C119A3100D69C88 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -496,6 +608,15 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
+		BEE90ED8D2692FB8C8D42701 /* Build configuration list for PBXNativeTarget "LinkyardTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				11ADA9B45E8370149D74C181 /* Debug */,
+				D65AD4343C196EB71949F8A7 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 		9830F09D2C119A3000D69C88 /* Build configuration list for PBXProject "Browserino" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (

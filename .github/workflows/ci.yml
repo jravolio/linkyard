@@ -11,7 +11,11 @@ jobs:
     runs-on: macos-15
     steps:
       - uses: actions/checkout@v4
-      - name: Build
+      - name: Test
+        run: |
+          xcodebuild -project Browserino.xcodeproj -scheme Browserino \
+            -destination 'platform=macOS' -derivedDataPath build/ci test
+      - name: Build release
         run: |
           xcodebuild -project Browserino.xcodeproj -scheme Browserino -configuration Release \
             -destination 'generic/platform=macOS' -derivedDataPath build/ci \
