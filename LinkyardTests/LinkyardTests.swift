@@ -118,6 +118,28 @@ final class PickerLayoutTests: XCTestCase {
         XCTAssertEqual(rows[1].cells.values.map(\.id), ["zen-work-2"])
     }
 
+    func testNoProfilesMeansNoRowsAndNoSelection() {
+        let empty = PickerRow(id: "app::0", title: "Zoom", iconPath: nil, iconAppURL: URL(fileURLWithPath: "/Nonexistent/zoom.us.app"))
+
+        XCTAssertTrue(PickerLayout.identityRows(from: [], order: ["Personal"]).isEmpty)
+        XCTAssertNil(PickerLayout.resolvedColumn(in: empty, columns: [], preferring: "anything"))
+    }
+
+    func testShortcutsCoverAppRowsAndBrowserCells() {
+        let dia = PickerBrowserItem(id: "dia-work", appURL: URL(fileURLWithPath: "/Nonexistent/Dia.app"), displayName: nil, profileDirectory: "Work", shortcutKey: "W")
+        let zen = PickerBrowserItem(id: "zen-work", appURL: URL(fileURLWithPath: "/Nonexistent/Zen.app"), displayName: nil, profileDirectory: "Work", shortcutKey: nil)
+        let columns = [dia, zen].map(PickerLayout.bundleID)
+        let rows = [
+            PickerRow(id: "app::0", title: "Zoom", iconPath: nil, iconAppURL: URL(fileURLWithPath: "/Nonexistent/zoom.us.app"), shortcutKey: "Z"),
+            PickerRow(id: "work", title: "Work", iconPath: nil, iconAppURL: dia.appURL, cells: [columns[0]: dia, columns[1]: zen]),
+        ]
+
+        XCTAssertEqual(PickerLayout.shortcuts(for: rows, columns: columns), [
+            PickerLayout.Shortcut(key: "z", row: 0, column: nil),
+            PickerLayout.Shortcut(key: "w", row: 1, column: columns[0]),
+        ])
+    }
+
     func testTheSelectedColumnFallsBackToTheNearestBrowserTheRowHas() {
         let dia = item("dia", app: "Dia", group: "Work")
         let chrome = item("chrome", app: "Chrome", group: "Work")
@@ -169,5 +191,14 @@ final class RuleMatchingTests: XCTestCase {
 
     func testAnInvalidPatternNeverMatches() {
         XCTAssertFalse(Rule(regex: "(", app: browser).matches("https://example.com", sourceBundleID: nil, windowTitle: { nil }))
+    }
+}
+
+final class SourceRuleContextTests: XCTestCase {
+    func testReadsTheWindowTitleOfAnySourceAppNotJustSlack() {
+        let teams = SourceApplicationSnapshot(application: NSRunningApplication.current)
+        let context = SourceRuleContext(application: teams, readTitle: { _ in "Acme | Microsoft Teams" })
+
+        XCTAssertEqual(context.windowTitle, "Acme | Microsoft Teams")
     }
 }

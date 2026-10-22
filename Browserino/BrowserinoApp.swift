@@ -279,40 +279,26 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     }
 }
 
-private struct SourceApplicationSnapshot {
+struct SourceApplicationSnapshot {
     let bundleIdentifier: String?
-    let localizedName: String?
     let processIdentifier: pid_t
 
     init(application: NSRunningApplication) {
         self.bundleIdentifier = application.bundleIdentifier
-        self.localizedName = application.localizedName
         self.processIdentifier = application.processIdentifier
-    }
-
-    var isSlack: Bool {
-        if bundleIdentifier?.localizedCaseInsensitiveContains("slack") == true {
-            return true
-        }
-
-        return localizedName?.localizedCaseInsensitiveContains("slack") == true
     }
 }
 
 /// Reading the title makes blocking Accessibility calls into the source app, so only rules that check it pay for it.
-private final class SourceRuleContext {
+final class SourceRuleContext {
     let application: SourceApplicationSnapshot?
+    private let readTitle: (pid_t) -> String?
 
-    lazy var windowTitle: String? = {
-        guard let application, application.isSlack else {
-            return nil
-        }
+    lazy var windowTitle: String? = application.flatMap { readTitle($0.processIdentifier) }
 
-        return SlackAccessibilityProbe.windowTitle(processIdentifier: application.processIdentifier)
-    }()
-
-    init(application: SourceApplicationSnapshot?) {
+    init(application: SourceApplicationSnapshot?, readTitle: @escaping (pid_t) -> String? = WindowTitleProbe.windowTitle) {
         self.application = application
+        self.readTitle = readTitle
     }
 }
 
@@ -330,7 +316,7 @@ private enum AccessibilityPermission {
     }
 }
 
-private enum SlackAccessibilityProbe {
+private enum WindowTitleProbe {
     static func windowTitle(processIdentifier: pid_t) -> String? {
         guard AXIsProcessTrusted() else {
             return nil

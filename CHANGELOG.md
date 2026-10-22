@@ -8,7 +8,7 @@ First Linkyard release, based on Browserino 1.1.16 plus the open [Chrome profile
 
 ### Added
 - Arc spaces as picker items and rule targets, opened in the right space with AppleScript.
-- Rules can match the app a link was clicked in and, for Slack, its window title, which tells workspaces apart. The title is read through Accessibility, which Linkyard asks for on first launch.
+- Rules can match the app a link was clicked in and that app's window title, which tells Slack workspaces apart. The title is read through Accessibility, which Linkyard asks for on first launch.
 - Hold ⌘ while clicking a link to skip your rules and get the picker.
 - Dia profiles as picker items and rule targets, opened by profile name with AppleScript.
 - Zen containers as picker items and rule targets, through the "Open external links in a container" Firefox add-on.

@@ -3,7 +3,7 @@
 ## A link's path
 
 1. **macOS hands the link to Linkyard** (it's the default browser): `AppDelegate.application(_:open:)` in `Browserino/BrowserinoApp.swift`. `linkyard://open?url=<base64>` links are unwrapped first.
-2. **Rules** (`Rule`, `ruleMatches`) are checked in order unless ⌘ is held. A rule matches the URL by regex, optionally the app the link came from (the last active app, tracked from workspace notifications), and optionally that app's window title. The title is read through Accessibility, lazily, and only for Slack (`SourceRuleContext`).
+2. **Rules** (`Rule`, `ruleMatches`) are checked in order unless ⌘ is held. A rule matches the URL by regex, optionally the app the link came from (the last active app, tracked from workspace notifications), and optionally that app's window title. The title is read through Accessibility, lazily, only when a rule checks it (`SourceRuleContext`).
 3. **A matching rule opens the link directly** through `BrowserUtil.openURL`. Otherwise the picker opens.
 4. **The picker** (`BrowserinoWindow`, `PromptView`) shows one row per identity and one column per browser. Rows come from profiles grouped by display name (`pickerGroups` / `pickerGroupOrder` can override); columns follow the browser order from Settings. The window sizes itself to the view and opens at the cursor or the screen center (`prompt_centerOnScreen`).
 

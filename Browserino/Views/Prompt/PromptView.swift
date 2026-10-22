@@ -25,6 +25,7 @@ struct PickerRow: Identifiable {
     let iconAppURL: URL
     var cells: [String: PickerBrowserItem] = [:]
     var app: App? = nil
+    var shortcutKey: String? = nil
 }
 
 struct PromptView: View {
@@ -136,7 +137,14 @@ struct PromptView: View {
     private func pickerRows(from items: [PickerBrowserItem]) -> [PickerRow] {
         let identityRows = PickerLayout.identityRows(from: items, order: pickerGroupOrder)
         let appRows = appsForUrls.enumerated().map { index, app in
-            PickerRow(id: "app::\(index)", title: app.app.appDisplayName, iconPath: nil, iconAppURL: app.app, app: app)
+            PickerRow(
+                id: "app::\(index)",
+                title: app.app.appDisplayName,
+                iconPath: nil,
+                iconAppURL: app.app,
+                app: app,
+                shortcutKey: shortcuts[Bundle(url: app.app)?.bundleIdentifier ?? ""]
+            )
         }
 
         return appsAtTop ? appRows + identityRows : identityRows + appRows
@@ -288,13 +296,13 @@ struct PromptView: View {
             .keyboardShortcut(KeyEquivalent(Character("\(index + 1)")), modifiers: [])
         }
 
-        ForEach(rows.flatMap { $0.cells.values }.filter { $0.shortcutKey?.first != nil }, id: \.id) { item in
+        ForEach(PickerLayout.shortcuts(for: rows, columns: columns), id: \.self) { shortcut in
             ForEach([EventModifiers(), .shift], id: \.rawValue) { modifiers in
                 Button(action: {
-                    openBrowserItem(item, isIncognito: NSEvent.modifierFlags.contains(.shift))
+                    open(rows[shortcut.row], column: shortcut.column, isIncognito: NSEvent.modifierFlags.contains(.shift))
                 }) {}
                 .opacity(0)
-                .keyboardShortcut(KeyEquivalent(item.shortcutKey!.lowercased().first!), modifiers: modifiers)
+                .keyboardShortcut(KeyEquivalent(shortcut.key), modifiers: modifiers)
             }
         }
     }
@@ -511,6 +519,24 @@ enum PickerLayout {
         }
 
         return rows
+    }
+
+    struct Shortcut: Hashable {
+        let key: Character
+        let row: Int
+        let column: String?
+    }
+
+    static func shortcuts(for rows: [PickerRow], columns: [String]) -> [Shortcut] {
+        rows.enumerated().flatMap { index, row -> [Shortcut] in
+            if let key = row.shortcutKey?.lowercased().first {
+                return [Shortcut(key: key, row: index, column: nil)]
+            }
+
+            return columns.compactMap { column in
+                row.cells[column]?.shortcutKey?.lowercased().first.map { Shortcut(key: $0, row: index, column: column) }
+            }
+        }
     }
 
     static func availableColumns(in row: PickerRow, columns: [String]) -> [String] {
