@@ -49,8 +49,12 @@ struct PromptView: View {
     @AppStorage("apps_atTop") private var appsAtTop: Bool = true
 
     let urls: [URL]
+    /// The picker's view is kept between links, so state a new picker starts with is reset when this changes.
+    var openID = 0
+    var showsGlow = false
+    /// Runs an open; the owner closes the picker first and skips the open for Settings' preview.
+    var performOpen: (_ open: () -> Void) -> Void = { $0() }
 
-    @State private var opacityAnimation = 0.0
     @State private var selectedRow = 0
     @State private var selectedColumn: String?
     @FocusState private var focused: Bool
@@ -101,7 +105,7 @@ struct PromptView: View {
                 let visibleProfiles = settings.profiles.filter { !$0.isHidden }
                 if !visibleProfiles.isEmpty {
                     for profile in visibleProfiles {
-                        let profileID = "\(bundleID)::\(profile.selectionID)"
+                        let profileID = ChromiumProfileUtil.profileID(bundleID, profile.selectionID)
                         let browserName = browser.appDisplayName
                         items.append(PickerBrowserItem(
                             id: profileID,
@@ -166,20 +170,24 @@ struct PromptView: View {
                 }
             }
 
-        BrowserUtil.openURL(
-            urls,
-            app: app.app,
-            isIncognito: false
-        )
+        performOpen {
+            BrowserUtil.openURL(
+                urls,
+                app: app.app,
+                isIncognito: false
+            )
+        }
     }
 
     func openBrowserItem(_ item: PickerBrowserItem, isIncognito: Bool) {
-        BrowserUtil.openURL(
-            urls,
-            app: item.appURL,
-            isIncognito: isIncognito,
-            profileDirectory: item.profileDirectory
-        )
+        performOpen {
+            BrowserUtil.openURL(
+                urls,
+                app: item.appURL,
+                isIncognito: isIncognito,
+                profileDirectory: item.profileDirectory
+            )
+        }
     }
 
     private func openSelected(rows: [PickerRow], columns: [String], isIncognito: Bool) {
@@ -197,6 +205,13 @@ struct PromptView: View {
         } else if let column, let item = row.cells[column] {
             openBrowserItem(item, isIncognito: isIncognito)
         }
+    }
+
+    private func prepareForLink() {
+        ChromiumProfileUtil.refreshArcProfilesIfNeeded($arcProfiles, shortcuts: $shortcuts)
+        selectedRow = 0
+        selectedColumn = nil
+        focused = true
     }
 
     private func subtitle(for row: PickerRow, activeColumn: String?) -> String {
@@ -220,9 +235,7 @@ struct PromptView: View {
                 .background(RoundedRectangle(cornerRadius: 9).fill(Color.white))
                 .shadow(color: .black.opacity(0.25), radius: 1, y: 0.5)
         } else {
-            Image(nsImage: NSWorkspace.shared.icon(forFile: row.iconAppURL.path))
-                .resizable()
-                .frame(width: Self.logoSize, height: Self.logoSize)
+            ProfileIcon(appPath: row.iconAppURL.path, size: Self.logoSize)
         }
     }
 
@@ -250,7 +263,7 @@ struct PromptView: View {
                 HStack(spacing: 4) {
                     ForEach(columns, id: \.self) { column in
                         if let item = row.cells[column] {
-                            PickerCell(item: item, isActive: column == activeColumn, size: Self.cellSize) {
+                            PickerCell(item: item, isActive: column == activeColumn, size: Self.cellSize, openID: openID) {
                                 openBrowserItem(item, isIncognito: NSEvent.modifierFlags.contains(.shift))
                             }
                         } else {
@@ -374,13 +387,12 @@ struct PromptView: View {
                     shortcutButtons(rows: rows, columns: columns)
                 }
                 .onAppear {
-                    ChromiumProfileUtil.refreshArcProfilesIfNeeded(&arcProfiles, shortcuts: &shortcuts)
-                    focused.toggle()
-                    withAnimation(.interactiveSpring(duration: 0.3)) {
-                        opacityAnimation = 1
-                    }
+                    prepareForLink()
                 }
-                .scrollEdgeEffectDisabledCompat()
+                .onChange(of: openID) { _ in
+                    prepareForLink()
+                    scrollViewProxy.scrollTo(0, anchor: .top)
+                }
             }
 
             Divider()
@@ -418,7 +430,11 @@ struct PromptView: View {
         .padding(12)
         .frame(width: 268 + CGFloat(columns.count) * (Self.cellSize + 4))
         .background(BlurredView())
-        .opacity(opacityAnimation)
+        .overlay {
+            if showsGlow {
+                GlowSweep(trigger: openID)
+            }
+        }
         .edgesIgnoringSafeArea(.all)
     }
 }
@@ -427,15 +443,14 @@ private struct PickerCell: View {
     let item: PickerBrowserItem
     let isActive: Bool
     let size: CGFloat
+    let openID: Int
     let action: () -> Void
 
     @State private var isHovered = false
 
     var body: some View {
         Button(action: action) {
-            Image(nsImage: NSWorkspace.shared.icon(forFile: item.appURL.path))
-                .resizable()
-                .frame(width: size - 8, height: size - 8)
+            ProfileIcon(appPath: item.appURL.path, size: size - 8)
                 .frame(width: size, height: size)
                 .background(
                     RoundedRectangle(cornerRadius: 9)
@@ -448,8 +463,70 @@ private struct PickerCell: View {
         }
         .buttonStyle(.plain)
         .onHover { isHovered = $0 }
+        .onChange(of: openID) { _ in isHovered = false }
         .help(item.displayName ?? "")
         .accessibilityLabel(item.displayName ?? item.appURL.appDisplayName)
+    }
+}
+
+/// A beam of light that runs once around the picker's edge as it opens, like Dia's.
+private struct GlowSweep: View {
+    let trigger: Int
+
+    @State private var finishedTrigger: Int?
+
+    var body: some View {
+        GlowSweepFrame(progress: finishedTrigger == trigger ? 1 : 0)
+            .allowsHitTesting(false)
+            .onAppear(perform: start)
+            .onChange(of: trigger) { _ in start() }
+    }
+
+    /// The picker is reused, so the first frame for a new link already shows the beam at its start.
+    private func start() {
+        withAnimation(.easeInOut(duration: 0.7)) {
+            finishedTrigger = trigger
+        }
+    }
+}
+
+private struct GlowSweepFrame: View, Animatable {
+    var progress: Double
+
+    var animatableData: Double {
+        get { progress }
+        set { progress = newValue }
+    }
+
+    /// The picker panel's corner radius, which AppKit doesn't expose.
+    private static var cornerRadius: CGFloat {
+        if #available(macOS 26.0, *) {
+            return 16
+        }
+        return 10
+    }
+
+    var body: some View {
+        let shape = RoundedRectangle(cornerRadius: Self.cornerRadius, style: .continuous)
+        let beam = AngularGradient(
+            colors: [
+                .clear, .clear, .clear,
+                Color(red: 0.56, green: 0.42, blue: 1),
+                Color(red: 0.27, green: 0.66, blue: 1),
+                Color(red: 1, green: 0.47, blue: 0.76),
+                .clear,
+            ],
+            center: .center,
+            angle: .degrees(progress * 360 - 90)
+        )
+
+        ZStack {
+            shape.strokeBorder(beam, lineWidth: 6)
+                .blur(radius: 8)
+                .opacity(0.7)
+            shape.strokeBorder(beam, lineWidth: 1.5)
+        }
+        .opacity(progress < 0.7 ? 1 : (1 - progress) / 0.3)
     }
 }
 

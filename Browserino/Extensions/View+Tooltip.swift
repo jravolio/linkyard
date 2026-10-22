@@ -19,6 +19,7 @@ struct Tooltip: NSViewRepresentable {
     }
     
     func updateNSView(_ nsView: NSView, context: NSViewRepresentableContext<Tooltip>) {
+        nsView.toolTip = tooltip
     }
 }
 

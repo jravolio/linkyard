@@ -7,122 +7,101 @@
 
 import SwiftUI
 
-struct EditAppForm: View {
-    @Binding var app: App
-    @Binding var isPresented: Bool
-    
-    @AppStorage("apps") private var apps: [App] = []
-    @State private var openWithPresented = false
-    
-    private var hostValid: Bool {
-        let url = if app.host.starts(with: /https?:\/\//) {
-            app.host
-        } else {
-            "http://" + app.host
-        }
-        
-        return !app.host.isEmpty && URL(string: url)?.host() != nil
-    }
-    
-    var body: some View {
-        let bundle = Bundle(url: app.app)!
+struct AppForm: View {
+    var app: App?
 
-        Form {
-            Section(
-                header: Text("General")
-                    .font(.headline)
-            ) {
-                TextField("Host:", text: $app.host)
-                    .font(
-                        .system(size: 14)
-                    )
-                
-                LabeledContent("Application:") {
-                    Button(action: {
-                        openWithPresented.toggle()
-                    }) {
-                        Text("Open with")
+    var onCancel: () -> Void
+    var onSave: (App) -> Void
+    var onDelete: (() -> Void)? = nil
+
+    @State private var host = ""
+    @State private var appURL: URL?
+    @State private var schemeOverride = ""
+    @State private var openWithPresented = false
+
+    /// Nil when the text isn't a valid host; empty means every link.
+    private var normalizedHost: String? {
+        let trimmed = host.trimmingCharacters(in: .whitespaces)
+        if trimmed.isEmpty {
+            return ""
+        }
+
+        let url = trimmed.starts(with: /https?:\/\//) ? trimmed : "http://" + trimmed
+        return URL(string: url)?.host()
+    }
+
+    var body: some View {
+        VStack(spacing: 0) {
+            Form {
+                Section {
+                    TextField("Website", text: $host, prompt: Text("example.com, or empty for every link"))
+
+                    if normalizedHost == nil {
+                        Text("This isn't a website address.")
+                            .font(.caption)
+                            .foregroundStyle(.red)
+                    }
+
+                    LabeledContent("App") {
+                        HStack {
+                            if let appURL {
+                                Text(appURL.appDisplayName)
+                                    .foregroundStyle(.secondary)
+                            }
+                            Button("Choose…") {
+                                openWithPresented.toggle()
+                            }
+                        }
                     }
                     .fileImporter(
                         isPresented: $openWithPresented,
                         allowedContentTypes: [.application]
                     ) {
                         if case .success(let url) = $0 {
-                            app.app = url
+                            appURL = url
                         }
                     }
-                    
-                    Text("\(bundle.infoDictionary!["CFBundleName"] as! String)")
-                        .padding(.horizontal, 5)
-                        .font(.callout)
-                        .foregroundStyle(.secondary)
+                } footer: {
+                    Text("Links to this website and its subdomains can open in the app.")
+                }
+
+                Section {
+                    TextField("Replace scheme", text: $schemeOverride, prompt: Text("Optional, like figma"))
+                } header: {
+                    Text("Advanced")
+                } footer: {
+                    Text("Some apps only open links with their own scheme, like figma:// instead of https://.")
                 }
             }
-            
-            Spacer()
-                .frame(height: 32)
-            
-            Section(
-                header: Text("Advanced")
-                    .font(.headline)
+            .formStyle(.grouped)
+
+            Divider()
+
+            SettingsSheetFooter(
+                saveTitle: app == nil ? "Add App" : "Save",
+                canSave: normalizedHost != nil && appURL != nil,
+                deleteTitle: "Delete App",
+                onDelete: onDelete,
+                onCancel: onCancel
             ) {
-                TextField("Replace scheme:", text: $app.schemeOverride)
-                    .font(
-                        .system(size: 14)
-                    )
+                if let normalizedHost, let appURL {
+                    onSave(App(host: normalizedHost, schemeOverride: schemeOverride, app: appURL))
+                }
             }
-            
-            Spacer()
-                .frame(height: 32)
-            
-            HStack {
-                Button(role: .cancel, action: {
-                    isPresented.toggle()
-                }) {
-                    Text("Cancel")
-                }
-                
-                Button(role: .destructive, action: {
-                    apps.removeAll {
-                        $0 == app
-                    }
-                    isPresented.toggle()
-                }) {
-                    Text("Delete")
-                }
-                
-                Spacer()
-                
-                Button(action: {
-                    let hostUrl = if app.host.starts(with: /https?:\/\//) {
-                        app.host
-                    } else {
-                        "http://" + app.host
-                    }
-                    app.host = URL(string: hostUrl)!.host()!
-                    
-                    isPresented.toggle()
-                }) {
-                    Text("Save")
-                }
-                .disabled(!hostValid)
-            }
-            .frame(maxWidth: .infinity, alignment: .trailing)
         }
-        .padding(20)
-        .frame(minWidth: 500)
+        .frame(width: 480, height: 380)
+        .onAppear {
+            host = app?.host ?? ""
+            appURL = app?.app
+            schemeOverride = app?.schemeOverride ?? ""
+        }
     }
 }
 
 #Preview {
-    EditAppForm(
-        app: .constant(
-            App(
-                host: "mm.2gis.one",
-                schemeOverride: "",
-                app: URL(string: "file:///Applications/Mattermost.app")!
-            )
-        ),
-        isPresented: .constant(true)
+    AppForm(
+        app: App(host: "figma.com", schemeOverride: "figma", app: URL(fileURLWithPath: "/Applications/Figma.app")),
+        onCancel: {},
+        onSave: { _ in }
     )
 }

@@ -8,51 +8,42 @@
 import SwiftUI
 
 struct AboutTab: View {
+    private var version: String {
+        Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? ""
+    }
+
     var body: some View {
-        VStack {
-            Spacer()
-            
-            Image(nsImage: NSWorkspace.shared.icon(forFile: Bundle.main.bundlePath))
-                .resizable()
-                .frame(width: 128, height: 128)
-            
-            Text(
-                "Linkyard v\(Bundle.main.infoDictionary?["CFBundleShortVersionString"] as! String)"
-            )
-            .font(.title)
-            .frame(maxWidth: .infinity)
-            
-            Spacer()
-                .frame(height: 16)
-            
-            Button(action: {
-                NSWorkspace.shared.open(
-                    URL(string: "https://github.com/jravolio/linkyard")!
-                )
-            }) {
-                Text("https://github.com/jravolio/linkyard")
+        SettingsForm {
+            Section {
+                VStack(spacing: 6) {
+                    Image(nsImage: NSApp.applicationIconImage)
+                        .resizable()
+                        .frame(width: 96, height: 96)
+                    Text("Linkyard")
+                        .font(.title.bold())
+                    Text("Version \(version)")
+                        .foregroundStyle(.secondary)
+                    Text("Every link to the right browser, as the right you.")
+                        .padding(.top, 4)
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 12)
+                .settingsItem("about.version")
             }
-            .buttonStyle(.link)
-            
-            Spacer()
-                .frame(height: 16)
-            
-            Text("A community continuation of Browserino by Aleksandr Strizhnev (@AlexStrNik).")
-                .foregroundStyle(.secondary)
 
-            Button(action: {
-                NSWorkspace.shared.open(
-                    URL(string: "https://github.com/AlexStrNik/Browserino")!
-                )
-            }) {
-                Text("https://github.com/AlexStrNik/Browserino")
+            Section {
+                LabeledContent("Source code") {
+                    Link("github.com/jravolio/linkyard", destination: URL(string: "https://github.com/jravolio/linkyard")!)
+                }
+                LabeledContent("Based on") {
+                    Link("Browserino by Aleksandr Strizhnev", destination: URL(string: "https://github.com/AlexStrNik/Browserino")!)
+                }
+                LabeledContent("License") {
+                    Text("GPL-3.0")
+                }
+            } footer: {
+                Text("Thanks to @byt3m4st3r, @mihado, @ventz, @motilevy and everyone else who contributed to Browserino.")
             }
-            .buttonStyle(.link)
-
-            Text("Thanks to @byt3m4st3r, @mihado, @ventz, @motilevy and others for contributions!")
-                .foregroundStyle(.secondary)
-            
-            Spacer()
         }
     }
 }

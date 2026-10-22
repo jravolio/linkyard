@@ -10,96 +10,55 @@ struct Directory: Codable, Hashable {
     var directoryPath: String
 }
 
-struct BrowserSearchLocations: View {
-    @Binding var directories: [Directory]
+struct BrowserLocationsSection: View {
+    @AppStorage("directories") private var directories: [Directory] = []
     @State private var explorerPresented = false
 
     var body: some View {
-        HStack {
-            Text("Add a new location by selecting a directory (use ⇧⌘G in the Finder to enter the path).")
-                .foregroundStyle(.secondary)
-                .frame(maxWidth: .infinity, alignment: .leading)
-            
-            Button(action: {
+        Section {
+            ForEach(directories, id: \.self) { directory in
+                HStack {
+                    Image(systemName: "folder")
+                        .foregroundStyle(.secondary)
+                    Text(directory.directoryPath)
+                        .truncationMode(.middle)
+                    Spacer()
+                    if directory.directoryPath != "/Applications" {
+                        Button {
+                            directories.removeAll { $0 == directory }
+                        } label: {
+                            Image(systemName: "minus.circle")
+                        }
+                        .buttonStyle(.borderless)
+                        .help("Stop looking in this folder")
+                    }
+                }
+            }
+
+            Button("Add Folder…") {
                 explorerPresented.toggle()
-            }) {
-                Text("Select directory")
             }
             .fileImporter(
                 isPresented: $explorerPresented,
                 allowedContentTypes: [.directory]
             ) { result in
-                if case let .success(dir) = result {
-                    let newDirectory = Directory(directoryPath: dir.path)
+                if case let .success(directory) = result {
+                    let newDirectory = Directory(directoryPath: directory.path)
                     if !directories.contains(newDirectory) {
                         directories.append(newDirectory)
                     }
                 }
             }
+        } header: {
+            Text("Where to look for browsers")
+                .settingsItem("browsers.locations")
+        } footer: {
+            Text("Linkyard lists the browsers installed in these folders. Rescan after adding one.")
         }
-        .padding(10)
-    }
-}
-
-struct DirectoryItem: View {
-    @Binding var directory: Directory
-    @Binding var directories: [Directory]
-
-    var body: some View {
-        HStack {
-            Text(directory.directoryPath)
-                .font(.system(size: 14))
-                .frame(maxWidth: .infinity, alignment: .leading)
-
-            
-            Button(action: {
-                deleteDirectory()
-            }) {
-                Image(
-                    systemName: "trash")
+        .onAppear {
+            if directories.isEmpty {
+                directories.append(Directory(directoryPath: "/Applications"))
             }
-            .disabled(directory.directoryPath == "/Applications")
-            .buttonStyle(.plain)
-        }
-        .padding(10)
-    }
-
-    private func deleteDirectory() {
-        if let index = directories.firstIndex(of: directory) {
-            directories.remove(at: index)
         }
     }
-}
-
-struct BrowserSearchLocationsTab: View {
-    @AppStorage("directories") private var directories: [Directory] = []
-
-    var body: some View {
-        VStack(alignment: .leading) {
-            List {
-                ForEach(Array($directories.enumerated()), id: \.offset) { _, directory in
-                    DirectoryItem(directory: directory, directories: $directories)
-                }
-                BrowserSearchLocations(directories: $directories)
-            }
-
-            Text("Manage browser search locations (don't forget to rescan)")
-                .font(.subheadline)
-                .foregroundStyle(.primary.opacity(0.5))
-                .frame(maxWidth: .infinity)
-        }
-        .onAppear(perform: loadDirectories)
-        .padding(.bottom, 20)
-    }
-
-    private func loadDirectories() {
-        if directories.isEmpty {
-            let defaultDirectory = Directory(directoryPath: "/Applications")
-            directories.append(defaultDirectory)
-        }
-    }
-}
-
-#Preview {
-    BrowserSearchLocationsTab()
 }

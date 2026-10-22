@@ -11,12 +11,16 @@ import ApplicationServices
 
 class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     private var selectorWindow: BrowserinoWindow?
+    /// Built at launch and kept between links: building the picker's views was most of the time it took to appear.
+    private var promptView: NSHostingView<PromptView>?
+    private var promptOpenCount = 0
     private var preferencesWindow: NSWindow?
     private var lastSourceApplication: SourceApplicationSnapshot?
     
     @AppStorage("rules") private var rules: [Rule] = []
     @AppStorage("showInMenuBar") private var showInMenuBar: Bool = true
     @AppStorage("prompt_centerOnScreen") private var centerOnScreen: Bool = false
+    @AppStorage("prompt_animation") private var pickerAnimation: PickerAnimation = .none
     @AppStorage("arcProfiles") private var arcProfiles: [ChromeProfile] = []
     @AppStorage("shortcuts") private var shortcuts: [String: String] = [:]
     
@@ -29,8 +33,8 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
             return
         }
 
-        importBrowserinoSettingsIfNeeded()
-        ChromiumProfileUtil.refreshArcProfilesIfNeeded(&arcProfiles, shortcuts: &shortcuts)
+        BrowserinoImport.importIfNeeded()
+        ChromiumProfileUtil.refreshArcProfilesIfNeeded($arcProfiles, shortcuts: $shortcuts)
         AccessibilityPermission.promptIfNeeded()
         rememberSourceApplication(NSWorkspace.shared.frontmostApplication)
         NSWorkspace.shared.notificationCenter.addObserver(
@@ -45,6 +49,16 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         
         if UserDefaults.standard.object(forKey: "browsers") == nil {
             openPreferences()
+        }
+
+        // A link that launched the app has already built the picker.
+        DispatchQueue.main.async {
+            if self.promptView == nil {
+                _ = self.preparePicker(urls: []).fittingSize
+                DispatchQueue.global(qos: .utility).async {
+                    malloc_zone_pressure_relief(nil, 0)
+                }
+            }
         }
     }
 
@@ -66,20 +80,6 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         lastSourceApplication = SourceApplicationSnapshot(application: application)
     }
 
-    /// A new bundle ID starts with empty settings; the Accessibility prompt flag isn't copied since Linkyard needs its own grant.
-    private func importBrowserinoSettingsIfNeeded() {
-        let defaults = UserDefaults.standard
-        guard defaults.object(forKey: "browsers") == nil,
-              let browserino = defaults.persistentDomain(forName: "xyz.alexstrnik.Browserino")
-        else {
-            return
-        }
-
-        for (key, value) in browserino where !key.hasPrefix("NS") && key != "sourceDetectionAccessibilityPrompted" {
-            defaults.set(value, forKey: key)
-        }
-    }
-
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows: Bool) -> Bool {
         self.openPreferences()
         return true
@@ -92,7 +92,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
                 let statusButton = statusBarItem!.button
                 statusButton!.image = NSImage.menuIcon
                 
-                let preferences = NSMenuItem(title: "Preferences...", action: #selector(openPreferences), keyEquivalent: "")
+                let preferences = NSMenuItem(title: "Settings…", action: #selector(openPreferences), keyEquivalent: "")
                 let quit = NSMenuItem(title: "Quit", action: #selector(quitApp), keyEquivalent: "")
                 
                 statusMenu = NSMenu()
@@ -147,22 +147,38 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     @objc func openPreferences() {
         if preferencesWindow == nil {
             preferencesWindow = NSWindow(
-                contentRect: NSRect(x: 0, y: 0, width: 700, height: 500),
-                styleMask: [.miniaturizable, .closable, .resizable, .titled],
+                contentRect: NSRect(x: 0, y: 0, width: 780, height: 560),
+                styleMask: [.miniaturizable, .closable, .resizable, .titled, .fullSizeContentView],
                 backing: .buffered,
                 defer: false
             )
+            preferencesWindow!.toolbarStyle = .unified
+            // A closed Settings window would keep its whole view tree in memory; it's rebuilt on every open anyway.
+            NotificationCenter.default.addObserver(forName: NSWindow.willCloseNotification, object: preferencesWindow, queue: .main) { notification in
+                guard let window = notification.object as? NSWindow else {
+                    return
+                }
+                DispatchQueue.main.async {
+                    if !window.isVisible {
+                        window.contentView = nil
+                        DispatchQueue.global(qos: .utility).async {
+                            malloc_zone_pressure_relief(nil, 0)
+                        }
+                    }
+                }
+            }
         }
         
         preferencesWindow!.center()
-        preferencesWindow!.title = "Preferences"
-        preferencesWindow!.contentView = NSHostingView(rootView: PreferencesView())
+        preferencesWindow!.title = "Settings"
+        let settingsView = NSHostingView(rootView: PreferencesView().environment(\.previewPicker) { [weak self] in
+            self?.previewPicker()
+        })
+        // The default sizing rewrites the window's min and max size on every pane switch, so the window would jump.
+        settingsView.sizingOptions = [.minSize]
+        preferencesWindow!.contentView = settingsView
         
         preferencesWindow!.isReleasedWhenClosed = false
-        preferencesWindow!.titlebarAppearsTransparent = true
-        
-        preferencesWindow!.contentMinSize = NSSize(width: 700, height: 500)
-        
         preferencesWindow!.collectionBehavior = [.moveToActiveSpace, .fullScreenNone]
         
         NSApplication.shared.activate(ignoringOtherApps: true)
@@ -210,22 +226,24 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
             }
         }
         
-        if selectorWindow == nil {
-            selectorWindow = BrowserinoWindow()
-        }
-        
-        let promptView = NSHostingView(
-            rootView: PromptView(
-                urls: processedUrls
-            )
-        )
-        if #available(macOS 14.0, *) {
-            promptView.safeAreaRegions = []
-        }
-        selectorWindow!.contentView = promptView
+        showPicker(urls: processedUrls, isPreview: false)
+    }
+
+    /// Opens the picker with a sample link, without rules, so Settings can preview the animation.
+    private func previewPicker() {
+        showPicker(urls: [URL(string: "https://github.com/jravolio/linkyard")!], isPreview: true)
+    }
+
+    private func showPicker(urls: [URL], isPreview: Bool) {
+        let animation = pickerAnimation.resolved
+        let promptView = preparePicker(urls: urls, isPreview: isPreview, showsGlow: animation == .glow && selectorWindow?.isVisible != true)
         selectorWindow!.setFrame(NSRect(origin: selectorWindow!.frame.origin, size: promptView.fittingSize), display: false)
 
-        let screen = getScreenWithMouse()!.visibleFrame
+        let screen = Self.pickerArea(
+            at: NSEvent.mouseLocation,
+            screens: NSScreen.screens.map { ($0.frame, $0.visibleFrame) },
+            mainVisibleFrame: NSScreen.main?.visibleFrame
+        ) ?? selectorWindow!.frame
         let size = selectorWindow!.frame.size
 
         selectorWindow?.setFrameOrigin(
@@ -248,9 +266,37 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         NSApplication.shared.activate(ignoringOtherApps: true)
         selectorWindow!.deactivateDelay()
         
-        selectorWindow!.makeKeyAndOrderFront(nil)
-        selectorWindow!.isReleasedWhenClosed = false
-        selectorWindow!.delegate = self
+        selectorWindow!.orderFront(animation: animation)
+        // When a link launches the app, the rest of launch runs before the next frame; draw the picker first.
+        CATransaction.flush()
+    }
+
+    private func preparePicker(urls: [URL], isPreview: Bool = false, showsGlow: Bool = false) -> NSHostingView<PromptView> {
+        promptOpenCount += 1
+        let rootView = PromptView(urls: urls, openID: promptOpenCount, showsGlow: showsGlow) { [weak self] open in
+            // Closed first: the browser takes a moment to come forward, and Arc's AppleScript blocks the main thread.
+            self?.selectorWindow?.close()
+            CATransaction.flush()
+            if !isPreview {
+                open()
+            }
+        }
+        if let promptView {
+            promptView.rootView = rootView
+            return promptView
+        }
+
+        let window = BrowserinoWindow()
+        window.isReleasedWhenClosed = false
+        window.delegate = self
+        let view = NSHostingView(rootView: rootView)
+        if #available(macOS 14.0, *) {
+            view.safeAreaRegions = []
+        }
+        window.contentView = view
+        selectorWindow = window
+        promptView = view
+        return view
     }
 
     private func isCommandKeyPressed() -> Bool {
@@ -265,17 +311,18 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     
     func windowDidResignKey(_ notification: Notification) {
         if selectorWindow!.hidesOnDeactivate {
-            selectorWindow!.contentView = nil
             selectorWindow!.close()
         }
     }
 
-    func getScreenWithMouse() -> NSScreen? {
-        let mouseLocation = NSEvent.mouseLocation
-        let screens = NSScreen.screens
-        let screenWithMouse = (screens.first { NSMouseInRect(mouseLocation, $0.frame, false) })
-        
-        return screenWithMouse
+    /// The visible frame of the screen under the pointer. While displays are connected or disconnected, the pointer
+    /// can be outside every screen AppKit knows about.
+    static func pickerArea(
+        at pointer: NSPoint,
+        screens: [(frame: NSRect, visibleFrame: NSRect)],
+        mainVisibleFrame: NSRect?
+    ) -> NSRect? {
+        screens.first { NSMouseInRect(pointer, $0.frame, false) }?.visibleFrame ?? mainVisibleFrame ?? screens.first?.visibleFrame
     }
 }
 
@@ -305,8 +352,9 @@ final class SourceRuleContext {
 private enum AccessibilityPermission {
     private static let promptedKey = "sourceDetectionAccessibilityPrompted"
 
+    /// The flag is read first because AXIsProcessTrusted asks the TCC daemon, which takes several ms at launch.
     static func promptIfNeeded() {
-        guard !AXIsProcessTrusted(), !UserDefaults.standard.bool(forKey: promptedKey) else {
+        guard !UserDefaults.standard.bool(forKey: promptedKey), !AXIsProcessTrusted() else {
             return
         }
 

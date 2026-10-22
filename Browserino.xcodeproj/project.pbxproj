@@ -14,18 +14,23 @@
 		669247902CEB48A5006A8C8B /* LocationsTab.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6692478F2CEB48A5006A8C8B /* LocationsTab.swift */; };
 		9830F0A62C119A3000D69C88 /* BrowserinoApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9830F0A52C119A3000D69C88 /* BrowserinoApp.swift */; };
 		9830F0A82C119A3000D69C88 /* PromptView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9830F0A72C119A3000D69C88 /* PromptView.swift */; };
+		A1E7EA012F00000000000015 /* PickerAnimation.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1E7EA012F00000000000016 /* PickerAnimation.swift */; };
 		9830F0AA2C119A3100D69C88 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 9830F0A92C119A3100D69C88 /* Assets.xcassets */; };
 		9830F0AD2C119A3100D69C88 /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 9830F0AC2C119A3100D69C88 /* Preview Assets.xcassets */; };
 		9830F0B62C119CD800D69C88 /* main.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9830F0B52C119CD800D69C88 /* main.swift */; };
 		9830F0B92C11B09700D69C88 /* BlurredView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9830F0B82C11B09700D69C88 /* BlurredView.swift */; };
 		9830F0BB2C11DE8F00D69C88 /* PreferencesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9830F0BA2C11DE8F00D69C88 /* PreferencesView.swift */; };
+		A1E7EA012F00000000000013 /* PickerTab.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1E7EA012F00000000000014 /* PickerTab.swift */; };
+		A1E7EA012F00000000000011 /* SettingsSearch.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1E7EA012F00000000000012 /* SettingsSearch.swift */; };
 		9830F0C52C11DF2C00D69C88 /* BrowserinoWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9830F0C42C11DF2C00D69C88 /* BrowserinoWindow.swift */; };
 		9830F0C72C11E87300D69C88 /* Array+RawRepresentable.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9830F0C62C11E87300D69C88 /* Array+RawRepresentable.swift */; };
 		9838C9802E9BC6CF00261421 /* View+Tooltip.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9838C97F2E9BC6CB00261421 /* View+Tooltip.swift */; };
-		984671D02E68A06100250D9C /* View+ScrollEdgeDisabled.swift in Sources */ = {isa = PBXBuildFile; fileRef = 984671CF2E68A05800250D9C /* View+ScrollEdgeDisabled.swift */; };
+		A1E7EA012F00000000000021 /* View+Reorderable.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1E7EA012F00000000000022 /* View+Reorderable.swift */; };
 		986AC6242CECDB5000884C40 /* BrowserinoApplication.swift in Sources */ = {isa = PBXBuildFile; fileRef = 986AC6232CECDB4700884C40 /* BrowserinoApplication.swift */; };
 		986DC8072CFE42E300447DC7 /* RulesTab.swift in Sources */ = {isa = PBXBuildFile; fileRef = 986DC8062CFE42E000447DC7 /* RulesTab.swift */; };
 		986DC8092CFE42EB00447DC7 /* Rule.swift in Sources */ = {isa = PBXBuildFile; fileRef = 986DC8082CFE42EA00447DC7 /* Rule.swift */; };
+		A1E7EA012F00000000000031 /* BrowserinoImport.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1E7EA012F00000000000032 /* BrowserinoImport.swift */; };
+		A1E7EA012F00000000000001 /* AppleEvents.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1E7EA012F00000000000002 /* AppleEvents.swift */; };
 		986DC80C2CFE447600447DC7 /* EditRuleForm.swift in Sources */ = {isa = PBXBuildFile; fileRef = 986DC80B2CFE447200447DC7 /* EditRuleForm.swift */; };
 		986DF3C42E45ED0500D5A3C4 /* View+FocusEffectDisabled.swift in Sources */ = {isa = PBXBuildFile; fileRef = 986DF3C32E45ED0100D5A3C4 /* View+FocusEffectDisabled.swift */; };
 		986DF3C82E45F2F000D5A3C4 /* View+OnKeyPress.swift in Sources */ = {isa = PBXBuildFile; fileRef = 986DF3C72E45F2EC00D5A3C4 /* View+OnKeyPress.swift */; };
@@ -60,6 +65,7 @@
 		9830F0A22C119A3000D69C88 /* Browserino.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Browserino.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		9830F0A52C119A3000D69C88 /* BrowserinoApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BrowserinoApp.swift; sourceTree = "<group>"; };
 		9830F0A72C119A3000D69C88 /* PromptView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PromptView.swift; sourceTree = "<group>"; };
+		A1E7EA012F00000000000016 /* PickerAnimation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PickerAnimation.swift; sourceTree = "<group>"; };
 		9830F0A92C119A3100D69C88 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		9830F0AC2C119A3100D69C88 /* Preview Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Preview Assets.xcassets"; sourceTree = "<group>"; };
 		9830F0AE2C119A3100D69C88 /* Browserino.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Browserino.entitlements; sourceTree = "<group>"; };
@@ -67,13 +73,17 @@
 		9830F0B52C119CD800D69C88 /* main.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = main.swift; sourceTree = "<group>"; };
 		9830F0B82C11B09700D69C88 /* BlurredView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BlurredView.swift; sourceTree = "<group>"; };
 		9830F0BA2C11DE8F00D69C88 /* PreferencesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PreferencesView.swift; sourceTree = "<group>"; };
+		A1E7EA012F00000000000014 /* PickerTab.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PickerTab.swift; sourceTree = "<group>"; };
+		A1E7EA012F00000000000012 /* SettingsSearch.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsSearch.swift; sourceTree = "<group>"; };
 		9830F0C42C11DF2C00D69C88 /* BrowserinoWindow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BrowserinoWindow.swift; sourceTree = "<group>"; };
 		9830F0C62C11E87300D69C88 /* Array+RawRepresentable.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Array+RawRepresentable.swift"; sourceTree = "<group>"; };
 		9838C97F2E9BC6CB00261421 /* View+Tooltip.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "View+Tooltip.swift"; sourceTree = "<group>"; };
-		984671CF2E68A05800250D9C /* View+ScrollEdgeDisabled.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "View+ScrollEdgeDisabled.swift"; sourceTree = "<group>"; };
+		A1E7EA012F00000000000022 /* View+Reorderable.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "View+Reorderable.swift"; sourceTree = "<group>"; };
 		986AC6232CECDB4700884C40 /* BrowserinoApplication.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BrowserinoApplication.swift; sourceTree = "<group>"; };
 		986DC8062CFE42E000447DC7 /* RulesTab.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RulesTab.swift; sourceTree = "<group>"; };
 		986DC8082CFE42EA00447DC7 /* Rule.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Rule.swift; sourceTree = "<group>"; };
+		A1E7EA012F00000000000032 /* BrowserinoImport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BrowserinoImport.swift; sourceTree = "<group>"; };
+		A1E7EA012F00000000000002 /* AppleEvents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppleEvents.swift; sourceTree = "<group>"; };
 		986DC80B2CFE447200447DC7 /* EditRuleForm.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditRuleForm.swift; sourceTree = "<group>"; };
 		986DF3C32E45ED0100D5A3C4 /* View+FocusEffectDisabled.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "View+FocusEffectDisabled.swift"; sourceTree = "<group>"; };
 		986DF3C72E45F2EC00D5A3C4 /* View+OnKeyPress.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "View+OnKeyPress.swift"; sourceTree = "<group>"; };
@@ -175,7 +185,7 @@
 			children = (
 				B9CFBE182F0C6F3D00FC6D37 /* URLExtensions.swift */,
 				9838C97F2E9BC6CB00261421 /* View+Tooltip.swift */,
-				984671CF2E68A05800250D9C /* View+ScrollEdgeDisabled.swift */,
+				A1E7EA012F00000000000022 /* View+Reorderable.swift */,
 				986DF3C72E45F2EC00D5A3C4 /* View+OnKeyPress.swift */,
 				986DF3C32E45ED0100D5A3C4 /* View+FocusEffectDisabled.swift */,
 				9830F0C62C11E87300D69C88 /* Array+RawRepresentable.swift */,
@@ -195,6 +205,8 @@
 			children = (
 				AA00010A2F0C700100FC6D37 /* ChromeProfile.swift */,
 				986DC8082CFE42EA00447DC7 /* Rule.swift */,
+				A1E7EA012F00000000000032 /* BrowserinoImport.swift */,
+				A1E7EA012F00000000000002 /* AppleEvents.swift */,
 				664FDF212CE4AA6B009766AA /* BrowserUtil.swift */,
 			);
 			path = Models;
@@ -204,6 +216,7 @@
 			isa = PBXGroup;
 			children = (
 				9830F0A72C119A3000D69C88 /* PromptView.swift */,
+				A1E7EA012F00000000000016 /* PickerAnimation.swift */,
 				989B17EE2C16F7640039441B /* PromptItem.swift */,
 			);
 			path = Prompt;
@@ -216,6 +229,8 @@
 				986DC8062CFE42E000447DC7 /* RulesTab.swift */,
 				989B17F42C16FC690039441B /* ShortcutButton.swift */,
 				9830F0BA2C11DE8F00D69C88 /* PreferencesView.swift */,
+				A1E7EA012F00000000000014 /* PickerTab.swift */,
+				A1E7EA012F00000000000012 /* SettingsSearch.swift */,
 				989B17FC2C17400A0039441B /* EditAppForm.swift */,
 				989B17F22C16FC550039441B /* BrowsersTab.swift */,
 				AA00010C2F0C700100FC6D37 /* ProfilesTab.swift */,
@@ -339,7 +354,10 @@
 				AA00010B2F0C700100FC6D37 /* ChromeProfile.swift in Sources */,
 				AA00010D2F0C700100FC6D37 /* ProfilesTab.swift in Sources */,
 				9830F0BB2C11DE8F00D69C88 /* PreferencesView.swift in Sources */,
+				A1E7EA012F00000000000013 /* PickerTab.swift in Sources */,
+				A1E7EA012F00000000000011 /* SettingsSearch.swift in Sources */,
 				9830F0A82C119A3000D69C88 /* PromptView.swift in Sources */,
+				A1E7EA012F00000000000015 /* PickerAnimation.swift in Sources */,
 				9830F0A62C119A3000D69C88 /* BrowserinoApp.swift in Sources */,
 				9830F0C52C11DF2C00D69C88 /* BrowserinoWindow.swift in Sources */,
 				B9CFBE192F0C6F3D00FC6D37 /* URLExtensions.swift in Sources */,
@@ -348,10 +366,11 @@
 				986DC80C2CFE447600447DC7 /* EditRuleForm.swift in Sources */,
 				989B17F32C16FC550039441B /* BrowsersTab.swift in Sources */,
 				986DC8092CFE42EB00447DC7 /* Rule.swift in Sources */,
+				A1E7EA012F00000000000031 /* BrowserinoImport.swift in Sources */,
+				A1E7EA012F00000000000001 /* AppleEvents.swift in Sources */,
 				989B17F72C16FD260039441B /* GeneralTab.swift in Sources */,
 				986DC8072CFE42E300447DC7 /* RulesTab.swift in Sources */,
 				989B17FD2C17400A0039441B /* EditAppForm.swift in Sources */,
-				984671D02E68A06100250D9C /* View+ScrollEdgeDisabled.swift in Sources */,
 				989B17EF2C16F7640039441B /* PromptItem.swift in Sources */,
 				669247902CEB48A5006A8C8B /* LocationsTab.swift in Sources */,
 				989B17F92C170C160039441B /* AboutTab.swift in Sources */,
@@ -360,6 +379,7 @@
 				9830F0B62C119CD800D69C88 /* main.swift in Sources */,
 				664FDF222CE4AA6B009766AA /* BrowserUtil.swift in Sources */,
 				9838C9802E9BC6CF00261421 /* View+Tooltip.swift in Sources */,
+				A1E7EA012F00000000000021 /* View+Reorderable.swift in Sources */,
 				9830F0B92C11B09700D69C88 /* BlurredView.swift in Sources */,
 				986AC6242CECDB5000884C40 /* BrowserinoApplication.swift in Sources */,
 				9830F0C72C11E87300D69C88 /* Array+RawRepresentable.swift in Sources */,
@@ -386,7 +406,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;
 				MACOSX_DEPLOYMENT_TARGET = 13.0;
-				MARKETING_VERSION = 1.0.0;
+				MARKETING_VERSION = 1.1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = io.github.jravolio.LinkyardTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = NO;
@@ -404,7 +424,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;
 				MACOSX_DEPLOYMENT_TARGET = 13.0;
-				MARKETING_VERSION = 1.0.0;
+				MARKETING_VERSION = 1.1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = io.github.jravolio.LinkyardTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = NO;
@@ -560,7 +580,7 @@
 					"@executable_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 13.0;
-				MARKETING_VERSION = 1.0.0;
+				MARKETING_VERSION = 1.1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = io.github.jravolio.Linkyard;
 				PRODUCT_NAME = Linkyard;
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -597,7 +617,7 @@
 					"@executable_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 13.0;
-				MARKETING_VERSION = 1.0.0;
+				MARKETING_VERSION = 1.1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = io.github.jravolio.Linkyard;
 				PRODUCT_NAME = Linkyard;
 				SWIFT_EMIT_LOC_STRINGS = YES;

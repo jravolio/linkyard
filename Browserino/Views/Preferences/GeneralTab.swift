@@ -37,14 +37,10 @@ struct GeneralTab: View {
     @State private var launchAtLogin = SMAppService.mainApp.status == .enabled
     @State private var showingExportPicker = false
     @State private var showingImportPicker = false
+    @State private var showingResetConfirmation = false
     @State private var exportDocument = SettingsDocument()
-    @AppStorage("browsers") private var browsers: [URL] = []
-    @AppStorage("copy_closeAfterCopy") private var closeAfterCopy: Bool = false
-    @AppStorage("copy_alternativeShortcut") private var alternativeShortcut: Bool = false
     @AppStorage("showInMenuBar") private var showInMenuBar: Bool = true
-    @AppStorage("apps_atTop") private var appsAtTop: Bool = true
-    @AppStorage("prompt_centerOnScreen") private var centerOnScreen: Bool = false
-    
+
     func defaultBrowser() -> String? {
         guard let browserUrl = NSWorkspace.shared.urlForApplication(toOpen: URL(string: "https:")!) else {
             return nil
@@ -77,8 +73,6 @@ struct GeneralTab: View {
             appSettings[key] = value
         }
         
-        print(appSettings)
-        
         exportDocument = SettingsDocument(settings: appSettings)
         showingExportPicker = true
     }
@@ -97,116 +91,48 @@ struct GeneralTab: View {
             for (key, value) in settings {
                 defaults.set(value, forKey: key)
             }
-            
-            print("Settings imported successfully")
         } catch {
             print("Failed to import settings: \(error.localizedDescription)")
         }
     }
-    
+
+    static func resetSettings(in defaults: UserDefaults = .standard) {
+        for key in defaults.dictionaryRepresentation().keys {
+            defaults.removeObject(forKey: key)
+        }
+        defaults.set(true, forKey: BrowserinoImport.doneKey)
+    }
+
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            HStack(alignment: .top, spacing: 32) {
-                Text("Default browser")
-                    .font(.headline)
-                    .frame(width: 200, alignment: .trailing)
-                
-                VStack(alignment: .leading) {
-                    Button(action: {
-                        NSWorkspace.shared.setDefaultApplication(
-                            at: Bundle.main.bundleURL,
-                            toOpenURLsWithScheme: "http"
-                        ) { _ in
-                            isDefault = defaultBrowser() == Bundle.main.bundleIdentifier
+        SettingsForm {
+            Section {
+                LabeledContent {
+                    if isDefault {
+                        Label("In use", systemImage: "checkmark.circle.fill")
+                            .foregroundStyle(.green)
+                    } else {
+                        Button("Make Default") {
+                            NSWorkspace.shared.setDefaultApplication(
+                                at: Bundle.main.bundleURL,
+                                toOpenURLsWithScheme: "http"
+                            ) { _ in
+                                DispatchQueue.main.async {
+                                    isDefault = defaultBrowser() == Bundle.main.bundleIdentifier
+                                }
+                            }
                         }
-                    }) {
-                        Text("Make default")
                     }
-                    .disabled(isDefault)
-                    
-                    Text("Make Linkyard default browser to use it")
-                        .font(.callout)
-                        .opacity(0.5)
+                } label: {
+                    Text("Default browser")
+                    Text(isDefault
+                        ? "Links you click in other apps come to Linkyard first."
+                        : "Make Linkyard your default browser so links come to it first.")
                 }
+                .settingsItem("general.defaultBrowser")
             }
-            
-            HStack(alignment: .top, spacing: 32) {
-                Text("Installed Browsers")
-                    .font(.headline)
-                    .frame(width: 200, alignment: .trailing)
-                
-                VStack(alignment: .leading) {
-                    Button(action: {
-                        browsers = BrowserUtil.loadBrowsers(
-                            oldBrowsers: browsers
-                        )
-                    }) {
-                        Text("Rescan")
-                    }
-                    
-                    Text("Rescan list of installed browsers")
-                        .font(.callout)
-                        .opacity(0.5)
-                }
-            }
-            
-            HStack(alignment: .top, spacing: 32) {
-                Text("Copy URL")
-                    .font(.headline)
-                    .frame(width: 200, alignment: .trailing)
-                
-                VStack(alignment: .leading) {
-                    Toggle(isOn: $closeAfterCopy) {
-                        Text("Close prompt view after copying URL")
-                            .font(.callout)
-                            .opacity(0.5)
-                    }
-                    
-                    Toggle(isOn: $alternativeShortcut) {
-                        Text("Use Command+C instead of Command+Option+C")
-                            .font(.callout)
-                            .opacity(0.5)
-                    }
-                }
-            }
-            
-            HStack(alignment: .top, spacing: 32) {
-                Text("Appearance")
-                    .font(.headline)
-                    .frame(width: 200, alignment: .trailing)
-                
-                VStack(alignment: .leading) {
-                    Toggle(isOn: $appsAtTop) {
-                        Text("Show apps before browsers")
-                            .font(.callout)
-                            .opacity(0.5)
-                    }
-                    
-                    Toggle(isOn: $showInMenuBar) {
-                        Text("Show Linkyard in menu bar")
-                            .font(.callout)
-                            .opacity(0.5)
-                    }
 
-                    Toggle(isOn: $centerOnScreen) {
-                        Text("Open the picker in the center of the screen instead of at the cursor")
-                            .font(.callout)
-                            .opacity(0.5)
-                    }
-                }
-            }
-            
-            HStack(alignment: .top, spacing: 32) {
-                Text("Startup")
-                    .font(.headline)
-                    .frame(width: 200, alignment: .trailing)
-
-                VStack(alignment: .leading) {
-                    Toggle(isOn: $launchAtLogin) {
-                        Text("Launch Linkyard at login")
-                            .font(.callout)
-                            .opacity(0.5)
-                    }
+            Section {
+                Toggle("Open at login", isOn: $launchAtLogin)
                     .onChange(of: launchAtLogin) { newValue in
                         do {
                             if newValue {
@@ -218,73 +144,57 @@ struct GeneralTab: View {
                             launchAtLogin = SMAppService.mainApp.status == .enabled
                         }
                     }
+                    .settingsItem("general.launchAtLogin")
+
+                Toggle(isOn: $showInMenuBar) {
+                    Text("Show in menu bar")
+                    Text("When it's hidden, open Linkyard from Finder to get back to Settings.")
                 }
+                .settingsItem("general.menuBar")
             }
 
-            HStack(alignment: .top, spacing: 32) {
-                Text("Import/Export")
-                    .font(.headline)
-                    .frame(width: 200, alignment: .trailing)
-                
-                VStack(alignment: .leading) {
-                    Button(action: {
-                        exportSettings()
-                    }) {
-                        Text("Export")
-                    }
-                    
-                    Text("Export all settings")
-                        .font(.callout)
-                        .opacity(0.5)
-                    
-                    Button(action: {
-                        showingImportPicker = true
-                    }) {
-                        Text("Import")
-                    }
-                    
-                    Text("Import all settings")
-                        .font(.callout)
-                        .opacity(0.5)
-                }
-            }
-            
-            HStack(alignment: .top, spacing: 32) {
-                Text("System reset")
-                    .font(.headline)
-                    .frame(width: 200, alignment: .trailing)
-                
-                VStack(alignment: .leading) {
-                    Button(action: {
-                        let defaults = UserDefaults.standard
-                        let dictionary = defaults.dictionaryRepresentation()
-                        dictionary.keys.forEach { key in
-                            defaults.removeObject(forKey: key)
+            Section {
+                LabeledContent {
+                    HStack {
+                        Button("Export…", action: exportSettings)
+                        Button("Import…") {
+                            showingImportPicker = true
                         }
-                    }) {
-                        Text("Reset")
                     }
-                    
-                    Text("Reset all preferences")
-                        .font(.callout)
-                        .opacity(0.5)
+                } label: {
+                    Text("Back up settings")
+                    Text("Browsers, profiles, rules, apps and shortcuts, in a file you can import on another Mac.")
                 }
+                .settingsItem("general.backup")
+
+                LabeledContent {
+                    Button("Reset…", role: .destructive) {
+                        showingResetConfirmation = true
+                    }
+                } label: {
+                    Text("Reset all settings")
+                    Text("Removes your browsers, profiles, rules, apps and shortcuts.")
+                }
+                .settingsItem("general.reset")
             }
         }
         .onAppear {
             isDefault = defaultBrowser() == Bundle.main.bundleIdentifier
         }
-        .padding(20)
+        .confirmationDialog("Reset all Linkyard settings?", isPresented: $showingResetConfirmation) {
+            Button("Reset", role: .destructive) {
+                Self.resetSettings()
+            }
+        } message: {
+            Text("This can't be undone. Export your settings first if you might want them back.")
+        }
         .fileExporter(
             isPresented: $showingExportPicker,
             document: exportDocument,
             contentType: .json,
-            defaultFilename: "browserino-settings"
+            defaultFilename: "linkyard-settings"
         ) { result in
-            switch result {
-            case .success(let url):
-                print("Settings exported to: \(url)")
-            case .failure(let error):
+            if case .failure(let error) = result {
                 print("Export failed: \(error.localizedDescription)")
             }
         }
