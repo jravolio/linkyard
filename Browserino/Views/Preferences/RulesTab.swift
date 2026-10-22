@@ -46,10 +46,8 @@ struct RuleItem: View {
     private var sourceDescription: String? {
         var parts: [String] = []
 
-        if let sourceApp = rule.sourceApp,
-           let sourceBundle = Bundle(url: sourceApp),
-           let sourceName = sourceBundle.infoDictionary?["CFBundleName"] as? String {
-            parts.append("from \(sourceName)")
+        if let sourceApp = rule.sourceApp, Bundle(url: sourceApp) != nil {
+            parts.append("from \(sourceApp.appDisplayName)")
         }
 
         if let sourceWindowTitleRegex = rule.sourceWindowTitleRegex,

@@ -17,7 +17,7 @@ struct ProfileIcon: View {
     }
 
     var body: some View {
-        if let iconPath, let profileImage = NSImage(contentsOfFile: iconPath) {
+        if let iconPath, let profileImage = ProfileImageCache.image(atPath: iconPath) {
             Image(nsImage: profileImage)
                 .resizable()
                 .scaledToFit()
@@ -33,5 +33,23 @@ struct ProfileIcon: View {
                 .resizable()
                 .frame(width: size, height: size)
         }
+    }
+}
+
+/// Profile logos are read from disk once; the picker redraws on every key press.
+enum ProfileImageCache {
+    private static let images = NSCache<NSString, NSImage>()
+
+    static func image(atPath path: String) -> NSImage? {
+        if let image = images.object(forKey: path as NSString) {
+            return image
+        }
+
+        guard let image = NSImage(contentsOfFile: path) else {
+            return nil
+        }
+
+        images.setObject(image, forKey: path as NSString)
+        return image
     }
 }

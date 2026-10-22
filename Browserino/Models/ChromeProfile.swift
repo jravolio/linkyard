@@ -11,7 +11,6 @@ struct ChromeProfile: Codable, Hashable {
     var displayName: String
     var isHidden: Bool = false
     var arcSpaceID: String? = nil
-    var arcSpaceTitle: String? = nil
     var iconPath: String? = nil
 
     var selectionID: String {
@@ -27,14 +26,12 @@ enum ProfileSourceKind {
     case zenContainers
 }
 
-struct ChromiumProfileSource: Hashable, Identifiable {
+struct ChromiumProfileSource: Hashable {
     let bundleID: String
     let displayName: String
     let localStatePath: String
     let profileLabel: String
     let kind: ProfileSourceKind
-
-    var id: String { bundleID }
 
     var detectsArcSpaces: Bool { kind == .arc }
 }
@@ -89,10 +86,6 @@ class ChromiumProfileUtil {
 
     static func appURL(for source: ChromiumProfileSource) -> URL? {
         NSWorkspace.shared.urlForApplication(withBundleIdentifier: source.bundleID)
-    }
-
-    static func chromeURL() -> URL? {
-        appURL(for: chromeSource)
     }
 
     static func detectProfiles(for source: ChromiumProfileSource) -> [ChromeProfile] {
@@ -188,6 +181,16 @@ class ChromiumProfileUtil {
         }
     }
 
+    /// Re-detects Arc spaces when they changed, and moves shortcuts saved under a profile folder to the space ID.
+    static func refreshArcProfilesIfNeeded(_ profiles: inout [ChromeProfile], shortcuts: inout [String: String]) {
+        guard shouldRefreshProfiles(for: arcSource, profiles: profiles) else {
+            return
+        }
+
+        profiles = refreshProfiles(for: arcSource, existing: profiles)
+        shortcuts = migrateShortcuts(shortcuts, for: arcSource, profiles: profiles)
+    }
+
     static func refreshProfiles(for source: ChromiumProfileSource, existing: [ChromeProfile]) -> [ChromeProfile] {
         mergeProfiles(
             existing: existing,
@@ -243,48 +246,25 @@ class ChromiumProfileUtil {
         return detectedIDs != storedIDs
     }
 
+    /// Arc spaces stored under their profile folder (before they were keyed by space ID) take the detected name.
     static func mergeProfiles(
         existing: [ChromeProfile],
         detected: [ChromeProfile],
         source: ChromiumProfileSource
     ) -> [ChromeProfile] {
         detected.map { profile in
-            if let existing = existing.first(where: { $0.selectionID == profile.selectionID }) {
-                return ChromeProfile(
-                    directoryName: profile.directoryName,
-                    displayName: existing.displayName,
-                    isHidden: existing.isHidden,
-                    arcSpaceID: profile.arcSpaceID,
-                    arcSpaceTitle: profile.arcSpaceTitle,
-                    iconPath: existing.iconPath
-                )
+            let sameID = existing.first { $0.selectionID == profile.selectionID }
+            guard let match = sameID ?? (source.detectsArcSpaces ? existing.first { $0.directoryName == profile.directoryName } : nil) else {
+                return profile
             }
 
-            if source.detectsArcSpaces,
-               let existing = existing.first(where: { $0.directoryName == profile.directoryName }) {
-                return ChromeProfile(
-                    directoryName: profile.directoryName,
-                    displayName: profile.displayName,
-                    isHidden: existing.isHidden,
-                    arcSpaceID: profile.arcSpaceID,
-                    arcSpaceTitle: profile.arcSpaceTitle,
-                    iconPath: existing.iconPath
-                )
+            var merged = profile
+            merged.isHidden = match.isHidden
+            merged.iconPath = match.iconPath
+            if sameID != nil {
+                merged.displayName = match.displayName
             }
-
-            if !source.detectsArcSpaces,
-               let existing = existing.first(where: { $0.directoryName == profile.directoryName }) {
-                return ChromeProfile(
-                    directoryName: profile.directoryName,
-                    displayName: existing.displayName,
-                    isHidden: existing.isHidden,
-                    arcSpaceID: profile.arcSpaceID,
-                    arcSpaceTitle: profile.arcSpaceTitle,
-                    iconPath: existing.iconPath
-                )
-            }
-
-            return profile
+            return merged
         }
     }
 
@@ -298,13 +278,19 @@ class ChromiumProfileUtil {
         }?.arcSpaceID
     }
 
-    static func detectProfiles() -> [ChromeProfile] {
-        detectProfiles(for: chromeSource)
-    }
+    /// StorableSidebar.json can be megabytes and the picker checks it every time it opens.
+    private static var arcSpacesCache: (modified: Date, spaces: [ChromeProfile])?
 
     private static func detectArcSpaces() -> [ChromeProfile] {
         let sidebarPath = NSString(string: "~/Library/Application Support/Arc/StorableSidebar.json")
             .expandingTildeInPath
+
+        guard let modified = (try? FileManager.default.attributesOfItem(atPath: sidebarPath))?[.modificationDate] as? Date else {
+            return []
+        }
+        if let cache = arcSpacesCache, cache.modified == modified {
+            return cache.spaces
+        }
 
         guard let data = FileManager.default.contents(atPath: sidebarPath),
               let json = try? JSONSerialization.jsonObject(with: data)
@@ -312,19 +298,21 @@ class ChromiumProfileUtil {
             return []
         }
 
+        let spaces = arcSpaces(fromSidebar: json)
+        arcSpacesCache = (modified, spaces)
+        return spaces
+    }
+
+    static func arcSpaces(fromSidebar json: Any) -> [ChromeProfile] {
         var profiles: [ChromeProfile] = []
         var seenSpaceIDs: Set<String> = []
         collectArcSpaces(from: json, profiles: &profiles, seenSpaceIDs: &seenSpaceIDs)
 
-        if let orderedSpaceIDs = findOrderedArcSpaceIDs(in: json) {
-            let order = Dictionary(uniqueKeysWithValues: orderedSpaceIDs.enumerated().map { ($0.element, $0.offset) })
-            return profiles.sorted {
-                (order[$0.arcSpaceID ?? ""] ?? Int.max, $0.displayName) <
-                    (order[$1.arcSpaceID ?? ""] ?? Int.max, $1.displayName)
-            }
+        let order = Dictionary(uniqueKeysWithValues: (findOrderedArcSpaceIDs(in: json) ?? []).enumerated().map { ($0.element, $0.offset) })
+        return profiles.sorted {
+            (order[$0.arcSpaceID ?? ""] ?? Int.max, $0.displayName) <
+                (order[$1.arcSpaceID ?? ""] ?? Int.max, $1.displayName)
         }
-
-        return profiles.sorted { $0.displayName < $1.displayName }
     }
 
     private static func collectArcSpaces(
@@ -342,8 +330,7 @@ class ChromiumProfileUtil {
                 profiles.append(ChromeProfile(
                     directoryName: directoryName,
                     displayName: title,
-                    arcSpaceID: id,
-                    arcSpaceTitle: title
+                    arcSpaceID: id
                 ))
             }
 
@@ -392,17 +379,5 @@ class ChromiumProfileUtil {
         }
 
         return nil
-    }
-}
-
-class ChromeProfileUtil {
-    static let chromeBundleID = ChromiumProfileUtil.chromeBundleID
-
-    static func chromeURL() -> URL? {
-        ChromiumProfileUtil.chromeURL()
-    }
-
-    static func detectProfiles() -> [ChromeProfile] {
-        ChromiumProfileUtil.detectProfiles()
     }
 }

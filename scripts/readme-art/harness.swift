@@ -20,7 +20,7 @@ private func seedDemoSettings(out: String) {
         emojiIcon(glyph, to: "\(icons)/\(name).png")
     }
     func profile(_ name: String, dir: String? = nil, space: String? = nil, icon: String) -> ChromeProfile {
-        ChromeProfile(directoryName: dir ?? name, displayName: name, arcSpaceID: space, arcSpaceTitle: space == nil ? nil : name, iconPath: "\(icons)/\(icon).png")
+        ChromeProfile(directoryName: dir ?? name, displayName: name, arcSpaceID: space, iconPath: "\(icons)/\(icon).png")
     }
     let d = UserDefaults.standard
     let apps = URL(fileURLWithPath: "/Applications")

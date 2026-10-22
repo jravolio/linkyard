@@ -84,11 +84,7 @@ private struct ProfileSourceSection: View {
 
     /// List rows must have IDs unique across every section; Dia and Zen can both have a "Personal" profile.
     private var rows: [(index: Int, profile: ChromeProfile, id: String)] {
-        profiles.enumerated().map { ($0.offset, $0.element, "\(source.bundleID)::\(sourceKey($0.element))") }
-    }
-
-    private func sourceKey(_ profile: ChromeProfile) -> String {
-        source.detectsArcSpaces ? profile.selectionID : profile.directoryName
+        profiles.enumerated().map { ($0.offset, $0.element, "\(source.bundleID)::\($0.element.selectionID)") }
     }
 
     private func displayName(at index: Int) -> Binding<String> {
@@ -132,7 +128,7 @@ private struct ProfileSourceSection: View {
                         .padding(10)
                 }
 
-                ForEach(rows, id: \.id) { index, profile, _ in
+                ForEach(rows, id: \.id) { index, profile, rowID in
                     HStack {
                         ProfileIconPicker(
                             appPath: ChromiumProfileUtil.appURL(for: source)?.path,
@@ -146,7 +142,7 @@ private struct ProfileSourceSection: View {
                         Spacer()
                             .frame(width: 16)
 
-                        Text(source.detectsArcSpaces && profile.arcSpaceID != nil
+                        Text(profile.arcSpaceID != nil
                             ? "\(profile.directoryName) space"
                             : profile.directoryName)
                             .font(.system(size: 12).monospaced())
@@ -155,7 +151,7 @@ private struct ProfileSourceSection: View {
                         Spacer()
 
                         ShortcutButton(
-                            browserId: "\(source.bundleID)::\(source.detectsArcSpaces ? profile.selectionID : profile.directoryName)"
+                            browserId: rowID
                         )
 
                         Spacer()
@@ -198,6 +194,7 @@ private struct ProfileIconPicker: View {
         }
         .buttonStyle(.plain)
         .help("Choose an icon for this profile")
+        .accessibilityLabel("Profile icon")
         .contextMenu {
             if iconPath != nil {
                 Button("Remove Icon") {
@@ -216,15 +213,39 @@ private struct ProfileIconPicker: View {
 
         let folder = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
             .appendingPathComponent("Linkyard/ProfileIcons", isDirectory: true)
-        let destination = folder.appendingPathComponent("\(UUID().uuidString).\(url.pathExtension)")
+        let destination = folder.appendingPathComponent("\(UUID().uuidString).png")
 
         do {
             try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
-            try FileManager.default.copyItem(at: url, to: destination)
+            try Self.thumbnailPNG(of: url).write(to: destination)
             iconPath = destination.path
         } catch {
             print("Failed to save profile icon: \(error)")
         }
+    }
+
+    /// Logos are drawn at 36pt at most, so a 256px copy keeps the picker from decoding full-size images.
+    private static func thumbnailPNG(of url: URL) throws -> Data {
+        guard let image = NSImage(contentsOf: url),
+              let bitmap = NSBitmapImageRep(
+                  bitmapDataPlanes: nil, pixelsWide: 256, pixelsHigh: 256, bitsPerSample: 8, samplesPerPixel: 4,
+                  hasAlpha: true, isPlanar: false, colorSpaceName: .deviceRGB, bytesPerRow: 0, bitsPerPixel: 0
+              )
+        else {
+            throw CocoaError(.fileReadCorruptFile)
+        }
+
+        let scale = min(256 / max(image.size.width, 1), 256 / max(image.size.height, 1))
+        let size = NSSize(width: image.size.width * scale, height: image.size.height * scale)
+        NSGraphicsContext.saveGraphicsState()
+        NSGraphicsContext.current = NSGraphicsContext(bitmapImageRep: bitmap)
+        image.draw(in: NSRect(x: (256 - size.width) / 2, y: (256 - size.height) / 2, width: size.width, height: size.height))
+        NSGraphicsContext.restoreGraphicsState()
+
+        guard let png = bitmap.representation(using: .png, properties: [:]) else {
+            throw CocoaError(.fileWriteUnknown)
+        }
+        return png
     }
 }
 

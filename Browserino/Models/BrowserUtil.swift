@@ -69,39 +69,36 @@ class BrowserUtil {
             return
         }
 
-        if bundle.bundleIdentifier == ChromiumProfileUtil.arcBundleID {
-            if profileDirectory != nil || isIncognito {
-                if openArcURLs(urls, isIncognito: isIncognito, profileDirectory: profileDirectory) {
-                    return
-                }
+        let kind = ChromiumProfileUtil.source(for: bundle.bundleIdentifier)?.kind
+
+        switch kind {
+        case .arc:
+            if profileDirectory != nil || isIncognito,
+               openArcURLs(urls, isIncognito: isIncognito, profileDirectory: profileDirectory) {
+                return
             }
 
-            NSWorkspace.shared.open(
-                urls,
-                withApplicationAt: app,
-                configuration: NSWorkspace.OpenConfiguration()
-            )
+            NSWorkspace.shared.open(urls, withApplicationAt: app, configuration: NSWorkspace.OpenConfiguration())
             return
-        }
-
-        if bundle.bundleIdentifier == ChromiumProfileUtil.diaBundleID,
-           let profileDirectory,
-           !isIncognito,
-           openDiaURLs(urls, profileName: profileDirectory) {
-            return
-        }
-
-        if bundle.bundleIdentifier == ChromiumProfileUtil.zenBundleID, let profileDirectory, !isIncognito {
-            NSWorkspace.shared.open(
-                urls.compactMap { zenContainerURL(for: $0, container: profileDirectory) },
-                withApplicationAt: app,
-                configuration: NSWorkspace.OpenConfiguration()
-            )
-            return
+        case .dia:
+            if let profileDirectory, !isIncognito, openDiaURLs(urls, profileName: profileDirectory) {
+                return
+            }
+        case .zenContainers:
+            if let profileDirectory, !isIncognito {
+                NSWorkspace.shared.open(
+                    urls.compactMap { zenContainerURL(for: $0, container: profileDirectory) },
+                    withApplicationAt: app,
+                    configuration: NSWorkspace.OpenConfiguration()
+                )
+                return
+            }
+        case .chromium, nil:
+            break
         }
 
         let configuration = NSWorkspace.OpenConfiguration()
-        let supportsProfiles = ChromiumProfileUtil.source(for: bundle.bundleIdentifier)?.kind == .chromium
+        let supportsProfiles = kind == .chromium
 
         var args: [String] = []
 
@@ -136,7 +133,7 @@ class BrowserUtil {
                 activate
                 make new window with properties {incognito:true}
                 tell front window
-            \(arcTabCommands(for: urls))
+            \(tabCommands(for: urls))
                 end tell
             end tell
             """)
@@ -160,7 +157,7 @@ class BrowserUtil {
                     end if
                 end repeat
                 if didFocus is false then error "Arc space not found"
-        \(arcTabCommands(for: urls))
+        \(tabCommands(for: urls))
             end tell
         end tell
         """)
@@ -170,11 +167,6 @@ class BrowserUtil {
         guard !urls.isEmpty else {
             return false
         }
-
-        let tabCommands = urls.map {
-            "                set newTab to make new tab at end of tabs with properties {URL:\"\(escapeAppleScriptString($0.absoluteString))\"}"
-        }
-        .joined(separator: "\n")
 
         return runAppleScript("""
         tell application id "\(ChromiumProfileUtil.diaBundleID)"
@@ -188,7 +180,7 @@ class BrowserUtil {
                 if targetProfile is missing value then error "Dia profile not found"
                 tell targetProfile
                     focus
-        \(tabCommands)
+        \(tabCommands(for: urls, making: "set newTab to make new tab at end of tabs"))
                 end tell
                 tell newTab to focus
             end tell
@@ -197,7 +189,7 @@ class BrowserUtil {
     }
 
     /// Handled by the "Open external links in a container" Firefox add-on, which must be installed in Zen.
-    private static func zenContainerURL(for url: URL, container: String) -> URL? {
+    static func zenContainerURL(for url: URL, container: String) -> URL? {
         let allowed = CharacterSet(charactersIn: "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~")
         guard let name = container.addingPercentEncoding(withAllowedCharacters: allowed),
               let target = url.absoluteString.addingPercentEncoding(withAllowedCharacters: allowed)
@@ -208,9 +200,9 @@ class BrowserUtil {
         return URL(string: "ext+container:name=\(name)&url=\(target)")
     }
 
-    private static func arcTabCommands(for urls: [URL]) -> String {
+    private static func tabCommands(for urls: [URL], making command: String = "make new tab") -> String {
         urls.map {
-            "                make new tab with properties {URL:\"\(escapeAppleScriptString($0.absoluteString))\"}"
+            "                \(command) with properties {URL:\"\(escapeAppleScriptString($0.absoluteString))\"}"
         }
         .joined(separator: "\n")
     }
@@ -231,7 +223,7 @@ class BrowserUtil {
         return true
     }
 
-    private static func escapeAppleScriptString(_ value: String) -> String {
+    static func escapeAppleScriptString(_ value: String) -> String {
         value
             .replacingOccurrences(of: "\\", with: "\\\\")
             .replacingOccurrences(of: "\"", with: "\\\"")

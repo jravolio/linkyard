@@ -18,3 +18,9 @@ extension URL {
         return urlHost == appHost || urlHost.hasSuffix("." + appHost)
     }
 }
+
+extension URL {
+    var appDisplayName: String {
+        Bundle(url: self)?.infoDictionary?["CFBundleName"] as? String ?? deletingPathExtension().lastPathComponent
+    }
+}

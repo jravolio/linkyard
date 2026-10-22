@@ -89,26 +89,6 @@ struct PromptView: View {
         }
     }
 
-    private func refreshArcProfilesIfNeeded() {
-        guard ChromiumProfileUtil.shouldRefreshProfiles(
-            for: ChromiumProfileUtil.arcSource,
-            profiles: arcProfiles
-        ) else {
-            return
-        }
-
-        let refreshedProfiles = ChromiumProfileUtil.refreshProfiles(
-            for: ChromiumProfileUtil.arcSource,
-            existing: arcProfiles
-        )
-        shortcuts = ChromiumProfileUtil.migrateShortcuts(
-            shortcuts,
-            for: ChromiumProfileUtil.arcSource,
-            profiles: refreshedProfiles
-        )
-        arcProfiles = refreshedProfiles
-    }
-
     var pickerBrowserItems: [PickerBrowserItem] {
         var items: [PickerBrowserItem] = []
 
@@ -120,13 +100,13 @@ struct PromptView: View {
                 let visibleProfiles = settings.profiles.filter { !$0.isHidden }
                 if !visibleProfiles.isEmpty {
                     for profile in visibleProfiles {
-                        let profileID = "\(bundleID)::\(bundleID == ChromiumProfileUtil.arcBundleID ? profile.selectionID : profile.directoryName)"
-                        let browserName = bundle.infoDictionary?["CFBundleName"] as? String ?? "Browser"
+                        let profileID = "\(bundleID)::\(profile.selectionID)"
+                        let browserName = browser.appDisplayName
                         items.append(PickerBrowserItem(
                             id: profileID,
                             appURL: browser,
                             displayName: "\(browserName) - \(profile.displayName)",
-                            profileDirectory: bundleID == ChromiumProfileUtil.arcBundleID ? profile.selectionID : profile.directoryName,
+                            profileDirectory: profile.selectionID,
                             shortcutKey: shortcuts[profileID],
                             iconPath: profile.iconPath,
                             group: pickerGroups[profileID] ?? profile.displayName
@@ -146,101 +126,20 @@ struct PromptView: View {
             ))
         }
 
-        return groupedItems(items)
+        return PickerLayout.grouped(items, order: pickerGroupOrder)
     }
 
-    private func groupKey(_ group: String?) -> String? {
-        group.map { $0.lowercased().filter { !$0.isWhitespace } }
+    private var browserColumnsOrder: [String] {
+        visibleBrowsers.compactMap { Bundle(url: $0)?.bundleIdentifier }
     }
 
-    /// Keeps each group together, in `pickerGroupOrder` first and then in order of first appearance;
-    /// ungrouped items go last. Group names match ignoring case and spaces ("Acme" == "acme").
-    private func groupedItems(_ items: [PickerBrowserItem]) -> [PickerBrowserItem] {
-        var order = pickerGroupOrder.compactMap(groupKey)
-        for key in items.compactMap({ groupKey($0.group) }) where !order.contains(key) {
-            order.append(key)
-        }
-
-        return items.enumerated().sorted { lhs, rhs in
-            let left = groupKey(lhs.element.group).flatMap { order.firstIndex(of: $0) } ?? order.count
-            let right = groupKey(rhs.element.group).flatMap { order.firstIndex(of: $0) } ?? order.count
-            return (left, lhs.offset) < (right, rhs.offset)
-        }
-        .map(\.element)
-    }
-
-    private func groupTitle(_ group: String?) -> String? {
-        guard let key = groupKey(group) else {
-            return nil
-        }
-
-        return pickerGroupOrder.first { groupKey($0) == key } ?? group
-    }
-
-    private func appName(_ url: URL) -> String {
-        Bundle(url: url)?.infoDictionary?["CFBundleName"] as? String ?? url.deletingPathExtension().lastPathComponent
-    }
-
-    private func bundleID(of item: PickerBrowserItem) -> String {
-        Bundle(url: item.appURL)?.bundleIdentifier ?? item.appURL.absoluteString
-    }
-
-    private func browserColumns(for items: [PickerBrowserItem]) -> [String] {
-        let present = Set(items.map(bundleID))
-        return visibleBrowsers
-            .compactMap { Bundle(url: $0)?.bundleIdentifier }
-            .filter { present.contains($0) }
-    }
-
-    /// One row per group, with each browser in its own column; an item whose group already has
-    /// that browser, or that has no group, gets a row of its own.
     private func pickerRows(from items: [PickerBrowserItem]) -> [PickerRow] {
-        var identityRows: [PickerRow] = []
-        var rowIndexByGroup: [String: Int] = [:]
-
-        for item in items {
-            let column = bundleID(of: item)
-            if let key = groupKey(item.group),
-               let index = rowIndexByGroup[key],
-               identityRows[index].cells[column] == nil {
-                identityRows[index].cells[column] = item
-                identityRows[index].iconPath = identityRows[index].iconPath ?? item.iconPath
-                continue
-            }
-
-            if let key = groupKey(item.group), rowIndexByGroup[key] == nil {
-                rowIndexByGroup[key] = identityRows.count
-            }
-            identityRows.append(PickerRow(
-                id: item.id,
-                title: groupTitle(item.group) ?? item.displayName ?? appName(item.appURL),
-                iconPath: item.iconPath,
-                iconAppURL: item.appURL,
-                cells: [column: item]
-            ))
-        }
-
+        let identityRows = PickerLayout.identityRows(from: items, order: pickerGroupOrder)
         let appRows = appsForUrls.enumerated().map { index, app in
-            PickerRow(id: "app::\(index)", title: appName(app.app), iconPath: nil, iconAppURL: app.app, app: app)
+            PickerRow(id: "app::\(index)", title: app.app.appDisplayName, iconPath: nil, iconAppURL: app.app, app: app)
         }
 
         return appsAtTop ? appRows + identityRows : identityRows + appRows
-    }
-
-    private func availableColumns(in row: PickerRow, columns: [String]) -> [String] {
-        columns.filter { row.cells[$0] != nil }
-    }
-
-    /// The preferred column if the row has it, otherwise the nearest column the row does have.
-    private func resolvedColumn(in row: PickerRow, columns: [String], preferring preferred: String?) -> String? {
-        let available = availableColumns(in: row, columns: columns)
-        guard let preferred, let target = columns.firstIndex(of: preferred) else {
-            return available.first
-        }
-
-        return available.min {
-            abs(columns.firstIndex(of: $0)! - target) < abs(columns.firstIndex(of: $1)! - target)
-        }
     }
 
     func openUrlsInApp(app: App) {
@@ -275,6 +174,15 @@ struct PromptView: View {
         )
     }
 
+    private func openSelected(rows: [PickerRow], columns: [String], isIncognito: Bool) {
+        guard rows.indices.contains(selectedRow) else {
+            return
+        }
+
+        let row = rows[selectedRow]
+        open(row, column: PickerLayout.resolvedColumn(in: row, columns: columns, preferring: selectedColumn), isIncognito: isIncognito)
+    }
+
     private func open(_ row: PickerRow, column: String?, isIncognito: Bool) {
         if let app = row.app {
             openUrlsInApp(app: app)
@@ -288,14 +196,14 @@ struct PromptView: View {
             return "Open in app"
         }
         if let activeColumn, let item = row.cells[activeColumn] {
-            return "Open in \(appName(item.appURL))"
+            return "Open in \(item.appURL.appDisplayName)"
         }
-        return row.cells.count == 1 ? appName(row.iconAppURL) : "\(row.cells.count) browsers"
+        return row.cells.count == 1 ? row.iconAppURL.appDisplayName : "\(row.cells.count) browsers"
     }
 
     @ViewBuilder
     private func rowLogo(_ row: PickerRow) -> some View {
-        if let iconPath = row.iconPath, let logo = NSImage(contentsOfFile: iconPath) {
+        if let iconPath = row.iconPath, let logo = ProfileImageCache.image(atPath: iconPath) {
             Image(nsImage: logo)
                 .resizable()
                 .scaledToFit()
@@ -312,7 +220,7 @@ struct PromptView: View {
 
     private func rowView(_ row: PickerRow, index: Int, columns: [String]) -> some View {
         let isSelected = index == selectedRow
-        let activeColumn = isSelected ? resolvedColumn(in: row, columns: columns, preferring: selectedColumn) : nil
+        let activeColumn = isSelected ? PickerLayout.resolvedColumn(in: row, columns: columns, preferring: selectedColumn) : nil
 
         return HStack(spacing: 12) {
             rowLogo(row)
@@ -364,7 +272,7 @@ struct PromptView: View {
         .onTapGesture {
             open(
                 row,
-                column: activeColumn ?? resolvedColumn(in: row, columns: columns, preferring: nil),
+                column: activeColumn ?? PickerLayout.resolvedColumn(in: row, columns: columns, preferring: nil),
                 isIncognito: NSEvent.modifierFlags.contains(.shift)
             )
         }
@@ -374,7 +282,7 @@ struct PromptView: View {
     private func shortcutButtons(rows: [PickerRow], columns: [String]) -> some View {
         ForEach(Array(rows.prefix(9).enumerated()), id: \.element.id) { index, row in
             Button(action: {
-                open(row, column: resolvedColumn(in: row, columns: columns, preferring: nil), isIncognito: false)
+                open(row, column: PickerLayout.resolvedColumn(in: row, columns: columns, preferring: nil), isIncognito: false)
             }) {}
             .opacity(0)
             .keyboardShortcut(KeyEquivalent(Character("\(index + 1)")), modifiers: [])
@@ -393,7 +301,7 @@ struct PromptView: View {
 
     var body: some View {
         let items = pickerBrowserItems
-        let columns = browserColumns(for: items)
+        let columns = PickerLayout.columns(for: items, browserOrder: browserColumnsOrder)
         let rows = pickerRows(from: items)
         let listHeight = min(CGFloat(rows.count) * (Self.rowHeight + 2), Self.maxListHeight)
 
@@ -423,8 +331,8 @@ struct PromptView: View {
                         selectedRow = min(rows.count - 1, selectedRow + 1)
                     case .left, .right:
                         let row = rows[selectedRow]
-                        let available = availableColumns(in: row, columns: columns)
-                        guard let current = resolvedColumn(in: row, columns: columns, preferring: selectedColumn),
+                        let available = PickerLayout.availableColumns(in: row, columns: columns)
+                        guard let current = PickerLayout.resolvedColumn(in: row, columns: columns, preferring: selectedColumn),
                               let position = available.firstIndex(of: current)
                         else {
                             return
@@ -438,17 +346,13 @@ struct PromptView: View {
                 }
                 .background {
                     Button(action: {
-                        guard rows.indices.contains(selectedRow) else { return }
-                        let row = rows[selectedRow]
-                        open(row, column: resolvedColumn(in: row, columns: columns, preferring: selectedColumn), isIncognito: false)
+                        openSelected(rows: rows, columns: columns, isIncognito: false)
                     }) {}
                     .opacity(0)
                     .keyboardShortcut(.defaultAction)
 
                     Button(action: {
-                        guard rows.indices.contains(selectedRow) else { return }
-                        let row = rows[selectedRow]
-                        open(row, column: resolvedColumn(in: row, columns: columns, preferring: selectedColumn), isIncognito: true)
+                        openSelected(rows: rows, columns: columns, isIncognito: true)
                     }) {}
                     .opacity(0)
                     .keyboardShortcut(.return, modifiers: [.shift])
@@ -462,7 +366,7 @@ struct PromptView: View {
                     shortcutButtons(rows: rows, columns: columns)
                 }
                 .onAppear {
-                    refreshArcProfilesIfNeeded()
+                    ChromiumProfileUtil.refreshArcProfilesIfNeeded(&arcProfiles, shortcuts: &shortcuts)
                     focused.toggle()
                     withAnimation(.interactiveSpring(duration: 0.3)) {
                         opacityAnimation = 1
@@ -537,6 +441,91 @@ private struct PickerCell: View {
         .buttonStyle(.plain)
         .onHover { isHovered = $0 }
         .help(item.displayName ?? "")
+        .accessibilityLabel(item.displayName ?? item.appURL.appDisplayName)
+    }
+}
+
+/// The picker's layout rules, kept out of the view so they can be unit tested.
+enum PickerLayout {
+    /// Group names match ignoring case and spaces, so a profile named slightly differently in another browser still joins its group.
+    static func groupKey(_ group: String?) -> String? {
+        group.map { $0.lowercased().filter { !$0.isWhitespace } }
+    }
+
+    static func grouped(_ items: [PickerBrowserItem], order: [String]) -> [PickerBrowserItem] {
+        var keys = order.compactMap(groupKey)
+        for key in items.compactMap({ groupKey($0.group) }) where !keys.contains(key) {
+            keys.append(key)
+        }
+
+        return items.enumerated().sorted { lhs, rhs in
+            let left = groupKey(lhs.element.group).flatMap { keys.firstIndex(of: $0) } ?? keys.count
+            let right = groupKey(rhs.element.group).flatMap { keys.firstIndex(of: $0) } ?? keys.count
+            return (left, lhs.offset) < (right, rhs.offset)
+        }
+        .map(\.element)
+    }
+
+    static func groupTitle(_ group: String?, order: [String]) -> String? {
+        guard let key = groupKey(group) else {
+            return nil
+        }
+
+        return order.first { groupKey($0) == key } ?? group
+    }
+
+    static func bundleID(of item: PickerBrowserItem) -> String {
+        Bundle(url: item.appURL)?.bundleIdentifier ?? item.appURL.absoluteString
+    }
+
+    static func columns(for items: [PickerBrowserItem], browserOrder: [String]) -> [String] {
+        let present = Set(items.map(bundleID))
+        return browserOrder.filter { present.contains($0) }
+    }
+
+    static func identityRows(from items: [PickerBrowserItem], order: [String]) -> [PickerRow] {
+        var rows: [PickerRow] = []
+        var rowIndexByGroup: [String: Int] = [:]
+
+        for item in items {
+            let column = bundleID(of: item)
+            let key = groupKey(item.group)
+            if let key,
+               let index = rowIndexByGroup[key],
+               rows[index].cells[column] == nil {
+                rows[index].cells[column] = item
+                rows[index].iconPath = rows[index].iconPath ?? item.iconPath
+                continue
+            }
+
+            if let key, rowIndexByGroup[key] == nil {
+                rowIndexByGroup[key] = rows.count
+            }
+            rows.append(PickerRow(
+                id: item.id,
+                title: groupTitle(item.group, order: order) ?? item.displayName ?? item.appURL.appDisplayName,
+                iconPath: item.iconPath,
+                iconAppURL: item.appURL,
+                cells: [column: item]
+            ))
+        }
+
+        return rows
+    }
+
+    static func availableColumns(in row: PickerRow, columns: [String]) -> [String] {
+        columns.filter { row.cells[$0] != nil }
+    }
+
+    static func resolvedColumn(in row: PickerRow, columns: [String], preferring preferred: String?) -> String? {
+        guard let preferred, let target = columns.firstIndex(of: preferred) else {
+            return availableColumns(in: row, columns: columns).first
+        }
+
+        return columns.indices
+            .filter { row.cells[columns[$0]] != nil }
+            .min { abs($0 - target) < abs($1 - target) }
+            .map { columns[$0] }
     }
 }
 

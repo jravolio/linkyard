@@ -117,43 +117,23 @@ struct RuleForm: View {
         return string
     }
 
-    private var selectedAppProfiles: [ChromeProfile] {
-        guard let bundleID = selectedAppBundleID else {
-            return []
-        }
-
+    private func profileSettings(for bundleID: String) -> (profiles: [ChromeProfile], enabled: Bool)? {
         switch bundleID {
         case ChromiumProfileUtil.chromeBundleID:
-            return chromeProfiles
+            return (chromeProfiles, chromeProfilesEnabled)
         case ChromiumProfileUtil.arcBundleID:
-            return arcProfiles
+            return (arcProfiles, arcProfilesEnabled)
         case ChromiumProfileUtil.diaBundleID:
-            return diaProfiles
+            return (diaProfiles, diaProfilesEnabled)
         case ChromiumProfileUtil.zenBundleID:
-            return zenProfiles
+            return (zenProfiles, zenProfilesEnabled)
         default:
-            return []
+            return nil
         }
     }
 
-    private func refreshArcProfilesIfNeeded() {
-        guard ChromiumProfileUtil.shouldRefreshProfiles(
-            for: ChromiumProfileUtil.arcSource,
-            profiles: arcProfiles
-        ) else {
-            return
-        }
-
-        let refreshedProfiles = ChromiumProfileUtil.refreshProfiles(
-            for: ChromiumProfileUtil.arcSource,
-            existing: arcProfiles
-        )
-        shortcuts = ChromiumProfileUtil.migrateShortcuts(
-            shortcuts,
-            for: ChromiumProfileUtil.arcSource,
-            profiles: refreshedProfiles
-        )
-        arcProfiles = refreshedProfiles
+    private var selectedAppProfiles: [ChromeProfile] {
+        selectedAppBundleID.flatMap { profileSettings(for: $0)?.profiles } ?? []
     }
 
     private var selectedAppBundleID: String? {
@@ -167,7 +147,7 @@ struct RuleForm: View {
             }
 
             let bundleID = bundle.bundleIdentifier ?? browser.absoluteString
-            let browserName = bundle.infoDictionary?["CFBundleName"] as? String ?? browser.deletingPathExtension().lastPathComponent
+            let browserName = browser.appDisplayName
             var options = [RuleTargetOption(
                 id: targetOptionID(appURL: browser, profileDirectory: nil),
                 appURL: browser,
@@ -175,18 +155,8 @@ struct RuleForm: View {
                 displayName: browserName
             )]
 
-            switch bundleID {
-            case ChromiumProfileUtil.chromeBundleID where chromeProfilesEnabled:
-                options.append(contentsOf: chromeProfiles.map { profile in
-                    RuleTargetOption(
-                        id: targetOptionID(appURL: browser, profileDirectory: profile.directoryName),
-                        appURL: browser,
-                        profileDirectory: profile.directoryName,
-                        displayName: "\(browserName) - \(profile.displayName)"
-                    )
-                })
-            case ChromiumProfileUtil.arcBundleID where arcProfilesEnabled:
-                options.append(contentsOf: arcProfiles.map { profile in
+            if let settings = profileSettings(for: bundleID), settings.enabled {
+                options.append(contentsOf: settings.profiles.map { profile in
                     RuleTargetOption(
                         id: targetOptionID(appURL: browser, profileDirectory: profile.selectionID),
                         appURL: browser,
@@ -194,19 +164,6 @@ struct RuleForm: View {
                         displayName: "\(browserName) - \(profile.displayName)"
                     )
                 })
-            case ChromiumProfileUtil.diaBundleID where diaProfilesEnabled,
-                 ChromiumProfileUtil.zenBundleID where zenProfilesEnabled:
-                let profiles = bundleID == ChromiumProfileUtil.diaBundleID ? diaProfiles : zenProfiles
-                options.append(contentsOf: profiles.map { profile in
-                    RuleTargetOption(
-                        id: targetOptionID(appURL: browser, profileDirectory: profile.directoryName),
-                        appURL: browser,
-                        profileDirectory: profile.directoryName,
-                        displayName: "\(browserName) - \(profile.displayName)"
-                    )
-                })
-            default:
-                break
             }
 
             return options
@@ -256,10 +213,6 @@ struct RuleForm: View {
             },
             set: { profileDirectory = $0 }
         )
-    }
-
-    private func profileSelectionID(_ profile: ChromeProfile, bundleID: String) -> String {
-        bundleID == ChromiumProfileUtil.arcBundleID ? profile.selectionID : profile.directoryName
     }
 
     private func normalizedProfileDirectory(_ value: String?, bundleID: String) -> String? {
@@ -322,8 +275,8 @@ struct RuleForm: View {
                         }
                     }
 
-                    if let bundle = sourceApp.flatMap({ Bundle(url: $0) }) {
-                        Text("\(bundle.infoDictionary!["CFBundleName"] as! String)")
+                    if let sourceAppURL = sourceApp {
+                        Text(sourceAppURL.appDisplayName)
                             .padding(.horizontal, 5)
                             .font(.callout)
                             .foregroundStyle(.secondary)
@@ -400,7 +353,7 @@ struct RuleForm: View {
                     Picker("", selection: profileDirectoryBinding) {
                         Text("None").tag(nil as String?)
                         ForEach(selectedAppProfiles, id: \.selectionID) { profile in
-                            Text(profile.displayName).tag(profileSelectionID(profile, bundleID: bundleID) as String?)
+                            Text(profile.displayName).tag(profile.selectionID as String?)
                         }
                     }
                     .frame(width: 200)
@@ -452,7 +405,7 @@ struct RuleForm: View {
         .padding(20)
         .frame(minWidth: 500)
         .onAppear {
-            refreshArcProfilesIfNeeded()
+            ChromiumProfileUtil.refreshArcProfilesIfNeeded(&arcProfiles, shortcuts: &shortcuts)
             regex = rule?.regex ?? ""
             url = rule?.app
             profileDirectory = rule?.profileDirectory

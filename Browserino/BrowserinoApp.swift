@@ -8,13 +8,11 @@
 import SwiftUI
 import Foundation
 import ApplicationServices
-import OSLog
 
 class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     private var selectorWindow: BrowserinoWindow?
     private var preferencesWindow: NSWindow?
     private var lastSourceApplication: SourceApplicationSnapshot?
-    private let sourceDetectionLogger = SourceDetectionLogger()
     
     @AppStorage("rules") private var rules: [Rule] = []
     @AppStorage("showInMenuBar") private var showInMenuBar: Bool = true
@@ -26,9 +24,14 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     var statusBarItem: NSStatusItem!
     
     func applicationDidFinishLaunching(_ aNotification: Notification) {
+        // Unit tests run inside the app; skip the setup that changes settings or shows permission prompts.
+        guard ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] == nil else {
+            return
+        }
+
         importBrowserinoSettingsIfNeeded()
-        refreshStoredArcProfilesIfNeeded()
-        sourceDetectionLogger.promptForAccessibilityPermissionIfNeeded(reason: "launch")
+        ChromiumProfileUtil.refreshArcProfilesIfNeeded(&arcProfiles, shortcuts: &shortcuts)
+        AccessibilityPermission.promptIfNeeded()
         rememberSourceApplication(NSWorkspace.shared.frontmostApplication)
         NSWorkspace.shared.notificationCenter.addObserver(
             self,
@@ -63,8 +66,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         lastSourceApplication = SourceApplicationSnapshot(application: application)
     }
 
-    /// Linkyard has its own bundle ID, so on first launch it copies an existing Browserino setup.
-    /// The Accessibility prompt flag stays behind: Linkyard needs its own permission.
+    /// A new bundle ID starts with empty settings; the Accessibility prompt flag isn't copied since Linkyard needs its own grant.
     private func importBrowserinoSettingsIfNeeded() {
         let defaults = UserDefaults.standard
         guard defaults.object(forKey: "browsers") == nil,
@@ -76,28 +78,6 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         for (key, value) in browserino where !key.hasPrefix("NS") && key != "sourceDetectionAccessibilityPrompted" {
             defaults.set(value, forKey: key)
         }
-    }
-
-    private func refreshStoredArcProfilesIfNeeded() {
-        guard ChromiumProfileUtil.appURL(for: ChromiumProfileUtil.arcSource) != nil else {
-            return
-        }
-
-        if ChromiumProfileUtil.shouldRefreshProfiles(
-            for: ChromiumProfileUtil.arcSource,
-            profiles: arcProfiles
-        ) {
-            arcProfiles = ChromiumProfileUtil.refreshProfiles(
-                for: ChromiumProfileUtil.arcSource,
-                existing: arcProfiles
-            )
-        }
-
-        shortcuts = ChromiumProfileUtil.migrateShortcuts(
-            shortcuts,
-            for: ChromiumProfileUtil.arcSource,
-            profiles: arcProfiles
-        )
     }
 
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows: Bool) -> Bool {
@@ -213,19 +193,12 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
 
         let sourceContext = SourceRuleContext(application: lastSourceApplication)
         let shouldBypassRules = isCommandKeyPressed()
-        sourceDetectionLogger.log(
-            urls: processedUrls,
-            currentApplication: NSWorkspace.shared.frontmostApplication.map { SourceApplicationSnapshot(application: $0) },
-            sourceApplication: lastSourceApplication,
-            sourceWindowTitle: sourceContext.windowTitle,
-            rulesBypassedByCommand: shouldBypassRules
-        )
 
         if processedUrls.count == 1 && !shouldBypassRules {
             let urlString = processedUrls.first!.absoluteString
 
             for rule in rules {
-                if ruleMatches(rule, urlString: urlString, sourceContext: sourceContext) {
+                if rule.matches(urlString, sourceBundleID: sourceContext.application?.bundleIdentifier, windowTitle: { sourceContext.windowTitle }) {
                     BrowserUtil.openURL(
                         processedUrls,
                         app: rule.app,
@@ -297,35 +270,6 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         }
     }
 
-    private func ruleMatches(_ rule: Rule, urlString: String, sourceContext: SourceRuleContext) -> Bool {
-        guard let regex = try? Regex(rule.regex).ignoresCase(),
-              urlString.firstMatch(of: regex) != nil
-        else {
-            return false
-        }
-
-        if let sourceApp = rule.sourceApp {
-            guard let ruleSourceBundleID = Bundle(url: sourceApp)?.bundleIdentifier,
-                  sourceContext.application?.bundleIdentifier == ruleSourceBundleID
-            else {
-                return false
-            }
-        }
-
-        let sourceWindowTitleRegex = rule.sourceWindowTitleRegex?
-            .trimmingCharacters(in: .whitespacesAndNewlines)
-        if let sourceWindowTitleRegex, !sourceWindowTitleRegex.isEmpty {
-            guard let sourceWindowTitle = sourceContext.windowTitle,
-                  let regex = try? Regex(sourceWindowTitleRegex).ignoresCase(),
-                  sourceWindowTitle.firstMatch(of: regex) != nil
-            else {
-                return false
-            }
-        }
-
-        return true
-    }
-    
     func getScreenWithMouse() -> NSScreen? {
         let mouseLocation = NSEvent.mouseLocation
         let screens = NSScreen.screens
@@ -339,15 +283,11 @@ private struct SourceApplicationSnapshot {
     let bundleIdentifier: String?
     let localizedName: String?
     let processIdentifier: pid_t
-    let executablePath: String?
-    let activatedAt: Date
 
     init(application: NSRunningApplication) {
         self.bundleIdentifier = application.bundleIdentifier
         self.localizedName = application.localizedName
         self.processIdentifier = application.processIdentifier
-        self.executablePath = application.executableURL?.path
-        self.activatedAt = Date()
     }
 
     var isSlack: Bool {
@@ -357,166 +297,36 @@ private struct SourceApplicationSnapshot {
 
         return localizedName?.localizedCaseInsensitiveContains("slack") == true
     }
-
-    func dictionary(relativeTo now: Date) -> [String: Any] {
-        [
-            "bundle_id": bundleIdentifier ?? NSNull(),
-            "name": localizedName ?? NSNull(),
-            "pid": Int(processIdentifier),
-            "executable_path": executablePath ?? NSNull(),
-            "age_ms": Int(now.timeIntervalSince(activatedAt) * 1000)
-        ]
-    }
 }
 
-private struct SourceRuleContext {
+/// Reading the title makes blocking Accessibility calls into the source app, so only rules that check it pay for it.
+private final class SourceRuleContext {
     let application: SourceApplicationSnapshot?
-    let windowTitle: String?
 
-    init(application: SourceApplicationSnapshot?) {
-        self.application = application
-
-        if let application, application.isSlack {
-            self.windowTitle = SlackAccessibilityProbe.windowTitle(processIdentifier: application.processIdentifier)
-        } else {
-            self.windowTitle = nil
-        }
-    }
-}
-
-private final class SourceDetectionLogger {
-    private let logger = Logger(
-        subsystem: Bundle.main.bundleIdentifier ?? "io.github.jravolio.Linkyard",
-        category: "SourceDetection"
-    )
-    private let accessibilityPromptedKey = "sourceDetectionAccessibilityPrompted"
-
-    private let dateFormatter = ISO8601DateFormatter()
-    private lazy var logFileURL: URL? = {
-        guard let libraryURL = FileManager.default.urls(for: .libraryDirectory, in: .userDomainMask).first else {
+    lazy var windowTitle: String? = {
+        guard let application, application.isSlack else {
             return nil
         }
 
-        return libraryURL
-            .appendingPathComponent("Logs", isDirectory: true)
-            .appendingPathComponent("Linkyard", isDirectory: true)
-            .appendingPathComponent("source-detection.jsonl")
+        return SlackAccessibilityProbe.windowTitle(processIdentifier: application.processIdentifier)
     }()
 
-    func promptForAccessibilityPermissionIfNeeded(reason: String) {
-        let now = Date()
-        let axTrustedBeforePrompt = AXIsProcessTrusted()
-        let hasPrompted = UserDefaults.standard.bool(forKey: accessibilityPromptedKey)
-        let axPrompted = axTrustedBeforePrompt || hasPrompted ? false : promptForAccessibilityPermission()
-        let axTrusted = AXIsProcessTrusted()
-
-        if axPrompted {
-            UserDefaults.standard.set(true, forKey: accessibilityPromptedKey)
-        }
-
-        write([
-            "event": "accessibility_permission_check",
-            "timestamp": dateFormatter.string(from: now),
-            "reason": reason,
-            "ax_prompt_previously_shown": hasPrompted,
-            "ax_trusted_before_prompt": axTrustedBeforePrompt,
-            "ax_prompted": axPrompted,
-            "ax_trusted": axTrusted,
-            "log_file": logFileURL?.path ?? NSNull()
-        ])
+    init(application: SourceApplicationSnapshot?) {
+        self.application = application
     }
+}
 
-    func log(
-        urls: [URL],
-        currentApplication: SourceApplicationSnapshot?,
-        sourceApplication: SourceApplicationSnapshot?,
-        sourceWindowTitle: String?,
-        rulesBypassedByCommand: Bool = false
-    ) {
-        let now = Date()
-        let axTrustedBeforePrompt = AXIsProcessTrusted()
-        let hasPrompted = UserDefaults.standard.bool(forKey: accessibilityPromptedKey)
-        let shouldPromptForAccessibility = sourceApplication?.isSlack == true && !axTrustedBeforePrompt && !hasPrompted
-        let axPrompted = shouldPromptForAccessibility ? promptForAccessibilityPermission() : false
-        let axTrusted = AXIsProcessTrusted()
+private enum AccessibilityPermission {
+    private static let promptedKey = "sourceDetectionAccessibilityPrompted"
 
-        if axPrompted {
-            UserDefaults.standard.set(true, forKey: accessibilityPromptedKey)
+    static func promptIfNeeded() {
+        guard !AXIsProcessTrusted(), !UserDefaults.standard.bool(forKey: promptedKey) else {
+            return
         }
 
-        var event: [String: Any] = [
-            "event": "source_detection",
-            "timestamp": dateFormatter.string(from: now),
-            "url_count": urls.count,
-            "url_hosts": urls.map { $0.host ?? "" },
-            "url_schemes": urls.map { $0.scheme ?? "" },
-            "current_app": currentApplication?.dictionary(relativeTo: now) ?? NSNull(),
-            "source_app": sourceApplication?.dictionary(relativeTo: now) ?? NSNull(),
-            "source_is_slack": sourceApplication?.isSlack ?? false,
-            "source_window_title": sourceWindowTitle ?? NSNull(),
-            "rules_bypassed_by_command": rulesBypassedByCommand,
-            "ax_prompt_previously_shown": hasPrompted,
-            "ax_trusted_before_prompt": axTrustedBeforePrompt,
-            "ax_prompted": axPrompted,
-            "ax_trusted": axTrusted,
-            "log_file": logFileURL?.path ?? NSNull()
-        ]
-
-        if let sourceApplication, sourceApplication.isSlack {
-            event["slack_ax"] = SlackAccessibilityProbe.probe(
-                processIdentifier: sourceApplication.processIdentifier,
-                isTrusted: axTrusted
-            )
-        }
-
-        write(event)
-    }
-
-    private func promptForAccessibilityPermission() -> Bool {
         let options = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true] as CFDictionary
         _ = AXIsProcessTrustedWithOptions(options)
-        return true
-    }
-
-    private func write(_ event: [String: Any]) {
-        guard JSONSerialization.isValidJSONObject(event),
-              let data = try? JSONSerialization.data(withJSONObject: event, options: [.sortedKeys]),
-              let jsonLine = String(data: data, encoding: .utf8)
-        else {
-            logger.error("Failed to encode source detection event")
-            return
-        }
-
-        logger.notice("\(jsonLine, privacy: .public)")
-        appendToLogFile(jsonLine)
-    }
-
-    private func appendToLogFile(_ jsonLine: String) {
-        guard let logFileURL else {
-            return
-        }
-
-        do {
-            try FileManager.default.createDirectory(
-                at: logFileURL.deletingLastPathComponent(),
-                withIntermediateDirectories: true
-            )
-
-            guard let data = "\(jsonLine)\n".data(using: .utf8) else {
-                return
-            }
-
-            if !FileManager.default.fileExists(atPath: logFileURL.path) {
-                FileManager.default.createFile(atPath: logFileURL.path, contents: nil)
-            }
-
-            let fileHandle = try FileHandle(forWritingTo: logFileURL)
-            try fileHandle.seekToEnd()
-            try fileHandle.write(contentsOf: data)
-            try fileHandle.close()
-        } catch {
-            logger.error("Failed to write source detection log file: \(error.localizedDescription, privacy: .public)")
-        }
+        UserDefaults.standard.set(true, forKey: promptedKey)
     }
 }
 
@@ -531,102 +341,22 @@ private enum SlackAccessibilityProbe {
             ?? windowTitle(appElement, kAXMainWindowAttribute)
     }
 
-    static func probe(processIdentifier: pid_t, isTrusted: Bool) -> [String: Any] {
-        guard isTrusted else {
-            return ["status": "not_trusted"]
-        }
-
-        let appElement = AXUIElementCreateApplication(processIdentifier)
-        var result: [String: Any] = [
-            "status": "trusted",
-            "app_title": attributeDictionary(appElement, kAXTitleAttribute),
-            "app_role": attributeDictionary(appElement, kAXRoleAttribute),
-            "focused_window": elementAttributeDictionary(appElement, kAXFocusedWindowAttribute),
-            "main_window": elementAttributeDictionary(appElement, kAXMainWindowAttribute),
-            "focused_element": elementAttributeDictionary(appElement, kAXFocusedUIElementAttribute)
-        ]
-
-        result["windows"] = windowDictionaries(appElement)
-        return result
-    }
-
-    private static func windowDictionaries(_ appElement: AXUIElement) -> [[String: Any]] {
-        let value = attributeValue(appElement, kAXWindowsAttribute)
-        guard value.error == .success,
-              let windows = value.value as? [AXUIElement]
-        else {
-            return [["error": String(describing: value.error)]]
-        }
-
-        return windows.prefix(10).map { elementSummary($0) }
-    }
-
     private static func windowTitle(_ appElement: AXUIElement, _ attribute: String) -> String? {
-        let windowValue = attributeValue(appElement, attribute)
-        guard windowValue.error == .success,
-              let elementValue = windowValue.value,
-              CFGetTypeID(elementValue) == AXUIElementGetTypeID()
+        var window: CFTypeRef?
+        guard AXUIElementCopyAttributeValue(appElement, attribute as CFString, &window) == .success,
+              let window,
+              CFGetTypeID(window) == AXUIElementGetTypeID()
         else {
             return nil
         }
 
-        let titleValue = attributeValue(elementValue as! AXUIElement, kAXTitleAttribute)
-        guard titleValue.error == .success,
-              let title = titleValue.value
+        var title: CFTypeRef?
+        guard AXUIElementCopyAttributeValue(window as! AXUIElement, kAXTitleAttribute as CFString, &title) == .success,
+              let title
         else {
             return nil
         }
 
         return String(describing: title)
-    }
-
-    private static func elementAttributeDictionary(_ element: AXUIElement, _ attribute: String) -> [String: Any] {
-        let value = attributeValue(element, attribute)
-
-        guard value.error == .success,
-              let elementValue = value.value,
-              CFGetTypeID(elementValue) == AXUIElementGetTypeID()
-        else {
-            return ["error": String(describing: value.error)]
-        }
-
-        let element = elementValue as! AXUIElement
-        return elementSummary(element)
-    }
-
-    private static func elementSummary(_ element: AXUIElement) -> [String: Any] {
-        [
-            "role": attributeDictionary(element, kAXRoleAttribute),
-            "subrole": attributeDictionary(element, kAXSubroleAttribute),
-            "title": attributeDictionary(element, kAXTitleAttribute),
-            "value": attributeDictionary(element, kAXValueAttribute),
-            "description": attributeDictionary(element, kAXDescriptionAttribute)
-        ]
-    }
-
-    private static func attributeDictionary(_ element: AXUIElement, _ attribute: String) -> [String: Any] {
-        let value = attributeValue(element, attribute)
-        return [
-            "error": String(describing: value.error),
-            "value": value.value.map(stringValue) ?? NSNull()
-        ]
-    }
-
-    private static func attributeValue(_ element: AXUIElement, _ attribute: String) -> (value: AnyObject?, error: AXError) {
-        var value: CFTypeRef?
-        let error = AXUIElementCopyAttributeValue(element, attribute as CFString, &value)
-        return (value as AnyObject?, error)
-    }
-
-    private static func stringValue(_ value: AnyObject) -> String {
-        let description = String(describing: value)
-            .replacingOccurrences(of: "\n", with: " ")
-            .replacingOccurrences(of: "\r", with: " ")
-
-        if description.count <= 300 {
-            return description
-        }
-
-        return "\(description.prefix(300))..."
     }
 }
