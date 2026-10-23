@@ -2,13 +2,14 @@
 
 Linkyard is a modified version of [Browserino](https://github.com/AlexStrNik/Browserino) by Aleksandr Strizhnev, released under the same GPL-3.0 license. This file lists what Linkyard changed.
 
-## Unreleased
+## 1.3.0 - 2026-10-23
 
 ### Added
-- Linkyard updates itself from GitHub releases with [Sparkle](https://sparkle-project.org): it checks once a day (Settings → General → Updates, or **Check for Updates…** in the menu bar), shows the release notes and installs when you agree. An update found while Linkyard runs in the background waits behind your windows, with a badge on Linkyard's Dock icon. Each download is checked against an EdDSA signature before it's installed. Copies from 1.2.1 and earlier don't have the updater, so the first version with it is installed by hand.
+- Linkyard updates itself from GitHub releases with [Sparkle](https://sparkle-project.org): it checks once a day (Settings → General, or **Check for Updates…** in the menu bar) and shows the release notes; install then, later, or let it install updates on its own. An update found while Linkyard runs in the background waits behind your windows, with a badge on Linkyard's Dock icon. Each download is checked against an EdDSA signature before it's installed. Copies from 1.2.1 and earlier don't have the updater, so the first version with it is installed by hand.
 
 ### Changed
 - The app's build number now matches its version (it was always 1), which update checks compare.
+- Releases are signed with Linkyard's own certificate instead of an ad-hoc signature, so macOS keeps Accessibility and the permission to control Dia and Arc when Linkyard updates. Moving to 1.3.0 asks for them one last time.
 
 ## 1.2.1
 
