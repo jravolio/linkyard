@@ -1,3 +1,4 @@
+import Metal
 import XCTest
 @testable import Linkyard
 
@@ -301,6 +302,162 @@ final class PickerAnimationTests: XCTestCase {
         XCTAssertLessThanOrEqual(samples.max()!, 1)
         XCTAssertEqual(samples.last!, 1, accuracy: 0.001)
         XCTAssertNil(BrowserinoWindow.zoomScale(at: BrowserinoWindow.zoomDuration))
+    }
+}
+
+/// The live picker replaces an effect when it ends, so every effect has to start with nothing drawn and end on the picker exactly.
+final class PickerEffectTests: XCTestCase {
+    /// Pixel sizes on a 2x screen, from PromptView's width (268 pt plus 36 per browser) and its row and list heights.
+    private let sizes: [(width: Int, height: Int)] = [(824, 212), (968, 212), (824, 576), (608, 1200)]
+
+    /// Detail down to single pixels, opaque and translucent content, and transparent areas where the blur shows.
+    private func snapshot(width: Int, height: Int) -> CGImage {
+        var pixels = [UInt8](repeating: 0, count: width * height * 4)
+        for y in 0..<height {
+            for x in 0..<width where (x / 40 + y / 40) % 3 != 0 {
+                let i = (y * width + x) * 4
+                let alpha: UInt8 = (x / 40) % 2 == 0 ? 255 : 128
+                let bright = (x + y) % 2 == 0
+                pixels[i] = bright ? alpha : alpha / 5
+                pixels[i + 1] = bright ? alpha : UInt8(Int(alpha) * 2 / 5)
+                pixels[i + 2] = bright ? alpha / 2 : alpha
+                pixels[i + 3] = alpha
+            }
+        }
+        let context = CGContext(data: &pixels, width: width, height: height, bitsPerComponent: 8, bytesPerRow: width * 4,
+                                space: CGColorSpace(name: CGColorSpace.sRGB)!, bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue)!
+        return context.makeImage()!
+    }
+
+    private func render(_ renderer: PickerEffectRenderer, _ snapshot: MTLTexture, mode: Int32, raw: Double) throws -> (overlay: [UInt8], mask: [UInt8]) {
+        let width = snapshot.width, height = snapshot.height
+        let descriptor = MTLTextureDescriptor.texture2DDescriptor(pixelFormat: .bgra8Unorm, width: width, height: height, mipmapped: false)
+        descriptor.usage = [.renderTarget, .shaderRead]
+        descriptor.storageMode = renderer.device.hasUnifiedMemory ? .shared : .managed
+        let overlay = try XCTUnwrap(renderer.device.makeTexture(descriptor: descriptor))
+        let mask = try XCTUnwrap(renderer.device.makeTexture(descriptor: descriptor))
+        let uniforms = EffectUniforms(size: SIMD2(Float(width), Float(height)), raw: Float(raw), duration: 0.6, radius: 0, scale: 2, dark: 1, mode: mode)
+        try XCTUnwrap(renderer.draw(uniforms, snapshot: snapshot, overlay: overlay, mask: mask)).waitUntilCompleted()
+        if !renderer.device.hasUnifiedMemory {
+            let buffer = try XCTUnwrap(renderer.device.makeCommandQueue()?.makeCommandBuffer())
+            let blit = try XCTUnwrap(buffer.makeBlitCommandEncoder())
+            [overlay, mask].forEach { blit.synchronize(resource: $0) }
+            blit.endEncoding()
+            buffer.commit()
+            buffer.waitUntilCompleted()
+        }
+
+        func bytes(_ texture: MTLTexture) -> [UInt8] {
+            var bytes = [UInt8](repeating: 0, count: width * height * 4)
+            texture.getBytes(&bytes, bytesPerRow: width * 4, from: MTLRegionMake2D(0, 0, width, height), mipmapLevel: 0)
+            return bytes
+        }
+        return (bytes(overlay), bytes(mask))
+    }
+
+    private func largestDifference(bgra: [UInt8], rgba: [UInt8]) -> Int {
+        var largest = 0
+        for i in stride(from: 0, to: rgba.count, by: 4) {
+            largest = max(largest, abs(Int(bgra[i + 2]) - Int(rgba[i])), abs(Int(bgra[i + 1]) - Int(rgba[i + 1])),
+                          abs(Int(bgra[i]) - Int(rgba[i + 2])), abs(Int(bgra[i + 3]) - Int(rgba[i + 3])))
+        }
+        return largest
+    }
+
+    private func alphas(_ pixels: [UInt8]) -> [UInt8] {
+        stride(from: 3, to: pixels.count, by: 4).map { pixels[$0] }
+    }
+
+    func testEveryEffectStartsHiddenAndEndsOnThePicker() throws {
+        guard let renderer = PickerEffectRenderer.shared else {
+            throw XCTSkip("No Metal device")
+        }
+
+        for size in sizes {
+            let image = snapshot(width: size.width, height: size.height)
+            let snapshot = try XCTUnwrap(renderer.texture(from: image))
+            let expected = Array(UnsafeBufferPointer(start: CFDataGetBytePtr(image.dataProvider!.data!), count: size.width * size.height * 4))
+
+            for effect in PickerAnimation.effects {
+                let mode = try XCTUnwrap(effect.effect).mode
+                let label = "\(effect) at \(size.width)x\(size.height)"
+                let start = try render(renderer, snapshot, mode: mode, raw: 0)
+                XCTAssertLessThanOrEqual(alphas(start.overlay).max()!, 3, "\(label) draws at its first frame")
+                XCTAssertLessThanOrEqual(alphas(start.mask).max()!, 2, "\(label) shows the background at its first frame")
+
+                let end = try render(renderer, snapshot, mode: mode, raw: 1)
+                XCTAssertGreaterThanOrEqual(alphas(end.mask).min()!, 253, "\(label) leaves background hidden at its end")
+                XCTAssertLessThanOrEqual(largestDifference(bgra: end.overlay, rgba: expected), 2, "\(label) doesn't end on the picker")
+            }
+        }
+    }
+
+    func testEffectsUseDistinctShaderModes() {
+        let modes = PickerAnimation.effects.compactMap { $0.effect?.mode }
+        XCTAssertEqual(modes.sorted(), Array(0..<Int32(PickerAnimation.effects.count)))
+    }
+}
+
+/// While an effect plays the picker is hidden behind it, so every way the effect ends has to put the picker back.
+final class PickerEffectHandoffTests: XCTestCase {
+    private var window: BrowserinoWindow!
+    private var picker: NSView!
+    private var background: NSColor!
+
+    override func setUpWithError() throws {
+        try XCTSkipIf(PickerEffectRenderer.shared == nil, "No Metal device")
+        window = BrowserinoWindow()
+        window.isReleasedWhenClosed = false
+        picker = NSView(frame: NSRect(x: 0, y: 0, width: 300, height: 200))
+        window.setPicker(picker)
+        window.setFrame(NSRect(x: 200, y: 200, width: 300, height: 200), display: false)
+        background = window.backgroundColor
+    }
+
+    override func tearDown() {
+        window?.close()
+    }
+
+    private func assertPickerIsBack(file: StaticString = #filePath, line: UInt = #line) {
+        XCTAssertEqual(picker.alphaValue, 1, file: file, line: line)
+        XCTAssertTrue(window.hasShadow, file: file, line: line)
+        XCTAssertEqual(window.backgroundColor, background, file: file, line: line)
+        XCTAssertFalse(window.contentView!.subviews.contains { $0 is PickerEffectView }, file: file, line: line)
+    }
+
+    func testThePickerIsHiddenWhileAnEffectPlays() {
+        window.orderFront(animation: .ink)
+        XCTAssertEqual(picker.alphaValue, 0)
+        XCTAssertFalse(window.hasShadow)
+        XCTAssertTrue(window.contentView!.subviews.contains { $0 is PickerEffectView })
+    }
+
+    func testClosingDuringAnEffectPutsThePickerBack() {
+        window.orderFront(animation: .ink)
+        window.close()
+        assertPickerIsBack()
+    }
+
+    func testAKeyPressEndsTheEffect() throws {
+        window.orderFront(animation: .restore)
+        let key = try XCTUnwrap(NSEvent.keyEvent(
+            with: .keyDown, location: .zero, modifierFlags: [], timestamp: 0, windowNumber: window.windowNumber, context: nil,
+            characters: "a", charactersIgnoringModifiers: "a", isARepeat: false, keyCode: 0
+        ))
+        window.sendEvent(key)
+        assertPickerIsBack()
+    }
+
+    func testTheEffectEndsOnItsOwn() throws {
+        window.orderFront(animation: .materialize)
+        RunLoop.main.run(until: Date().addingTimeInterval(try XCTUnwrap(PickerAnimation.materialize.effect).duration + 0.2))
+        assertPickerIsBack()
+    }
+
+    func testAnotherLinkDuringAnEffectShowsThePicker() {
+        window.orderFront(animation: .thaw)
+        window.orderFront(animation: .thaw)
+        assertPickerIsBack()
     }
 }
 

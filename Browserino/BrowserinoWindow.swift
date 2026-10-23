@@ -13,6 +13,17 @@ class BrowserinoWindow: NSPanel {
     static let selectorHeight: CGFloat = 200
 
     private var zoomTimer: Timer?
+    private var pickerView: NSView?
+    private var effectView: PickerEffectView?
+    private var backgroundBeforeEffect: NSColor?
+
+    /// The picker panel's corner radius, which AppKit doesn't expose.
+    static var cornerRadius: CGFloat {
+        if #available(macOS 26.0, *) {
+            return 16
+        }
+        return 10
+    }
 
     /// AppKit has no public way to scale a whole window with its shadow; Arc and Dia use this private method.
     /// The transform maps the screen to the window, so drawing the window at scale `s` takes a transform of `1 / s`.
@@ -51,10 +62,20 @@ class BrowserinoWindow: NSPanel {
         self.level = NSWindow.Level(Int(CGShieldingWindowLevel()))
         self.isMovable = false
     }
+
+    /// The picker sits in a container so an effect can play above it while the picker itself is hidden.
+    func setPicker(_ view: NSView) {
+        let container = NSView(frame: view.frame)
+        view.autoresizingMask = [.width, .height]
+        container.addSubview(view)
+        contentView = container
+        pickerView = view
+    }
     
     /// Animates the window itself, so the system shadow and rounded corners move with the picker.
     func orderFront(animation: PickerAnimation) {
         resetScale()
+        effectView?.finish()
 
         if isVisible {
             // Another link arrived while the picker is open or still animating in: settle it where it was just placed.
@@ -98,7 +119,43 @@ class BrowserinoWindow: NSPanel {
                 $0.animator().setFrame(target, display: true)
                 $0.animator().alphaValue = 1
             }
+        case .restore, .ink, .thaw, .crystallize, .ripple, .hologram, .materialize:
+            guard let pickerView, let effectView = PickerEffectView(effect: animation, content: pickerView) else {
+                // No Metal device, or the snapshot failed.
+                orderFront(animation: .fade)
+                return
+            }
+            alphaValue = 1
+            // The system shadow and the panel's own background cover the whole window, so they wait until the picker has appeared.
+            hasShadow = false
+            backgroundBeforeEffect = backgroundColor
+            backgroundColor = .clear
+            pickerView.alphaValue = 0
+            contentView?.addSubview(effectView)
+            self.effectView = effectView
+            effectView.play(revealPicker: { pickerView.alphaValue = 1 }, completion: { [weak self] in self?.endEffect() })
+            makeKeyAndOrderFront(nil)
         }
+    }
+
+    private func endEffect() {
+        guard let effectView else {
+            return
+        }
+
+        self.effectView = nil
+        pickerView?.alphaValue = 1
+        effectView.removeFromSuperview()
+        backgroundColor = backgroundBeforeEffect
+        hasShadow = true
+    }
+
+    /// The effect shows a snapshot, so the picker is put back as soon as it's used.
+    override func sendEvent(_ event: NSEvent) {
+        if let effectView, [.keyDown, .leftMouseDown, .rightMouseDown].contains(event.type) {
+            effectView.finish()
+        }
+        super.sendEvent(event)
     }
 
     static let zoomDuration: TimeInterval = 0.25
@@ -119,8 +176,7 @@ class BrowserinoWindow: NSPanel {
         let start = CACurrentMediaTime()
         setTransform(self, CGAffineTransform(scaleX: 1 / 0.95, y: 1 / 0.95), anchor)
 
-        let framesPerSecond = (screen ?? NSScreen.main)?.maximumFramesPerSecond ?? 60
-        let timer = Timer(timeInterval: 1 / Double(framesPerSecond), repeats: true) { [weak self] _ in
+        zoomTimer = .everyFrame(on: screen) { [weak self] in
             guard let self else {
                 return
             }
@@ -130,8 +186,6 @@ class BrowserinoWindow: NSPanel {
                 self.resetScale()
             }
         }
-        RunLoop.main.add(timer, forMode: .common)
-        zoomTimer = timer
     }
 
     private func resetScale() {
@@ -156,6 +210,7 @@ class BrowserinoWindow: NSPanel {
         // Only opening animates: the picker should be gone the moment a browser is chosen.
         animationBehavior = .none
         resetScale()
+        effectView?.finish()
         super.close()
     }
 
@@ -174,4 +229,14 @@ class BrowserinoWindow: NSPanel {
 
 extension NSPanel {
     open override var canBecomeKey: Bool { true }
+}
+
+extension Timer {
+    /// Fires at the screen's refresh rate, also while menus or drags run the loop in another mode.
+    static func everyFrame(on screen: NSScreen?, _ tick: @escaping () -> Void) -> Timer {
+        let framesPerSecond = (screen ?? NSScreen.main)?.maximumFramesPerSecond ?? 60
+        let timer = Timer(timeInterval: 1 / Double(framesPerSecond), repeats: true) { _ in tick() }
+        RunLoop.main.add(timer, forMode: .common)
+        return timer
+    }
 }

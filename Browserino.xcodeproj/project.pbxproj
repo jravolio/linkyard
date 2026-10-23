@@ -15,6 +15,8 @@
 		9830F0A62C119A3000D69C88 /* BrowserinoApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9830F0A52C119A3000D69C88 /* BrowserinoApp.swift */; };
 		9830F0A82C119A3000D69C88 /* PromptView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9830F0A72C119A3000D69C88 /* PromptView.swift */; };
 		A1E7EA012F00000000000015 /* PickerAnimation.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1E7EA012F00000000000016 /* PickerAnimation.swift */; };
+		A1E7EA012F00000000000051 /* PickerEffectView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1E7EA012F00000000000052 /* PickerEffectView.swift */; };
+		A1E7EA012F00000000000053 /* PickerEffects.metal in Sources */ = {isa = PBXBuildFile; fileRef = A1E7EA012F00000000000054 /* PickerEffects.metal */; };
 		9830F0AA2C119A3100D69C88 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 9830F0A92C119A3100D69C88 /* Assets.xcassets */; };
 		9830F0AD2C119A3100D69C88 /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 9830F0AC2C119A3100D69C88 /* Preview Assets.xcassets */; };
 		9830F0B62C119CD800D69C88 /* main.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9830F0B52C119CD800D69C88 /* main.swift */; };
@@ -66,6 +68,8 @@
 		9830F0A52C119A3000D69C88 /* BrowserinoApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BrowserinoApp.swift; sourceTree = "<group>"; };
 		9830F0A72C119A3000D69C88 /* PromptView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PromptView.swift; sourceTree = "<group>"; };
 		A1E7EA012F00000000000016 /* PickerAnimation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PickerAnimation.swift; sourceTree = "<group>"; };
+		A1E7EA012F00000000000052 /* PickerEffectView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PickerEffectView.swift; sourceTree = "<group>"; };
+		A1E7EA012F00000000000054 /* PickerEffects.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; path = PickerEffects.metal; sourceTree = "<group>"; };
 		9830F0A92C119A3100D69C88 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		9830F0AC2C119A3100D69C88 /* Preview Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Preview Assets.xcassets"; sourceTree = "<group>"; };
 		9830F0AE2C119A3100D69C88 /* Browserino.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Browserino.entitlements; sourceTree = "<group>"; };
@@ -217,6 +221,8 @@
 			children = (
 				9830F0A72C119A3000D69C88 /* PromptView.swift */,
 				A1E7EA012F00000000000016 /* PickerAnimation.swift */,
+				A1E7EA012F00000000000052 /* PickerEffectView.swift */,
+				A1E7EA012F00000000000054 /* PickerEffects.metal */,
 				989B17EE2C16F7640039441B /* PromptItem.swift */,
 			);
 			path = Prompt;
@@ -358,6 +364,8 @@
 				A1E7EA012F00000000000011 /* SettingsSearch.swift in Sources */,
 				9830F0A82C119A3000D69C88 /* PromptView.swift in Sources */,
 				A1E7EA012F00000000000015 /* PickerAnimation.swift in Sources */,
+				A1E7EA012F00000000000051 /* PickerEffectView.swift in Sources */,
+				A1E7EA012F00000000000053 /* PickerEffects.metal in Sources */,
 				9830F0A62C119A3000D69C88 /* BrowserinoApp.swift in Sources */,
 				9830F0C52C11DF2C00D69C88 /* BrowserinoWindow.swift in Sources */,
 				B9CFBE192F0C6F3D00FC6D37 /* URLExtensions.swift in Sources */,
@@ -406,7 +414,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;
 				MACOSX_DEPLOYMENT_TARGET = 13.0;
-				MARKETING_VERSION = 1.1.0;
+				MARKETING_VERSION = 1.2.0;
 				PRODUCT_BUNDLE_IDENTIFIER = io.github.jravolio.LinkyardTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = NO;
@@ -424,7 +432,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;
 				MACOSX_DEPLOYMENT_TARGET = 13.0;
-				MARKETING_VERSION = 1.1.0;
+				MARKETING_VERSION = 1.2.0;
 				PRODUCT_BUNDLE_IDENTIFIER = io.github.jravolio.LinkyardTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = NO;
@@ -580,7 +588,7 @@
 					"@executable_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 13.0;
-				MARKETING_VERSION = 1.1.0;
+				MARKETING_VERSION = 1.2.0;
 				PRODUCT_BUNDLE_IDENTIFIER = io.github.jravolio.Linkyard;
 				PRODUCT_NAME = Linkyard;
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -617,7 +625,7 @@
 					"@executable_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 13.0;
-				MARKETING_VERSION = 1.1.0;
+				MARKETING_VERSION = 1.2.0;
 				PRODUCT_BUNDLE_IDENTIFIER = io.github.jravolio.Linkyard;
 				PRODUCT_NAME = Linkyard;
 				SWIFT_EMIT_LOC_STRINGS = YES;
