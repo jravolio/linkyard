@@ -1,10 +1,13 @@
 #!/bin/bash
-# Builds a universal Linkyard.app, ad-hoc signed (there's no paid Apple Developer ID),
+# Builds a universal Linkyard.app, signed with Linkyard's self-signed certificate (there's no paid Apple Developer ID),
 # and zips it into dist/ for a GitHub release.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
 derived=build/release
+# The certificate gives every release the same code identity, so macOS keeps Accessibility and Automation across
+# updates; an ad-hoc signature changes with each build. LINKYARD_SIGN_IDENTITY=- builds ad-hoc without it.
+identity=${LINKYARD_SIGN_IDENTITY:-Linkyard Code Signing}
 app="$derived/Build/Products/Release/Linkyard.app"
 
 rm -rf "$derived"
@@ -19,7 +22,7 @@ xcodebuild -project Browserino.xcodeproj -scheme Browserino -configuration Relea
 sparkle="$app/Contents/Frameworks/Sparkle.framework"
 rm -rf "$sparkle/XPCServices" "$sparkle/Versions/B/XPCServices"
 for code in "$sparkle/Versions/B/Autoupdate" "$sparkle/Versions/B/Updater.app" "$sparkle" "$app"; do
-  codesign --force --sign - "$code"
+  codesign --force --timestamp=none --sign "$identity" "$code"
 done
 
 version=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$app/Contents/Info.plist")
