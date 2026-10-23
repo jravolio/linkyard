@@ -461,6 +461,86 @@ final class PickerEffectHandoffTests: XCTestCase {
     }
 }
 
+/// Releases are ad-hoc signed, so the Accessibility permission doesn't survive an update and has to be asked for again.
+final class AccessibilityPromptTests: XCTestCase {
+    private let titleRule = Rule(regex: ".*", app: URL(fileURLWithPath: "/Applications/Dia.app"), sourceWindowTitleRegex: "Acme")
+    private let plainRule = Rule(regex: ".*", app: URL(fileURLWithPath: "/Applications/Dia.app"), sourceWindowTitleRegex: "  ")
+
+    func testAsksAgainAfterAnUpdate() {
+        XCTAssertTrue(AccessibilityPermission.shouldPrompt(rules: [titleRule], promptedVersion: "1.1.0", version: "1.2.0"))
+    }
+
+    func testAsksWhenOnlyTheOldYesNoFlagIsStored() {
+        XCTAssertTrue(AccessibilityPermission.shouldPrompt(rules: [titleRule], promptedVersion: nil, version: "1.2.0"))
+    }
+
+    func testAsksOncePerVersion() {
+        XCTAssertFalse(AccessibilityPermission.shouldPrompt(rules: [titleRule], promptedVersion: "1.2.0", version: "1.2.0"))
+    }
+
+    func testDoesntAskWithoutAWindowTitleRule() {
+        XCTAssertFalse(AccessibilityPermission.shouldPrompt(rules: [plainRule], promptedVersion: nil, version: "1.2.0"))
+        XCTAssertFalse(plainRule.readsWindowTitle)
+        XCTAssertTrue(titleRule.readsWindowTitle)
+    }
+}
+
+/// Only the browsers Linkyard drives with Apple Events get a row in Settings → Permissions and a search result.
+final class AppleEventsBrowserTests: XCTestCase {
+    private var folder: URL!
+
+    override func setUpWithError() throws {
+        folder = FileManager.default.temporaryDirectory.appendingPathComponent("linkyard-tests-\(UUID().uuidString)")
+        try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+    }
+
+    override func tearDownWithError() throws {
+        try FileManager.default.removeItem(at: folder)
+    }
+
+    private func app(_ name: String, _ bundleID: String, in subfolder: String = "") throws -> URL {
+        let app = folder.appendingPathComponent(subfolder).appendingPathComponent("\(name).app")
+        let contents = app.appendingPathComponent("Contents")
+        try FileManager.default.createDirectory(at: contents, withIntermediateDirectories: true)
+        try PropertyListSerialization.data(fromPropertyList: ["CFBundleIdentifier": bundleID], format: .xml, options: 0)
+            .write(to: contents.appendingPathComponent("Info.plist"))
+        return app
+    }
+
+    func testListsDiaAndArcOnceEachAndSkipsOtherBrowsers() throws {
+        let chrome = try app("Google Chrome", ChromiumProfileUtil.chromeBundleID)
+        let dia = try app("Dia", ChromiumProfileUtil.diaBundleID)
+        let arc = try app("Arc", ChromiumProfileUtil.arcBundleID)
+        let secondDia = try app("Dia", ChromiumProfileUtil.diaBundleID, in: "Other")
+
+        let found = ChromiumProfileUtil.appleEventsBrowsers(in: [chrome, dia, arc, secondDia])
+
+        XCTAssertEqual(found.map(\.app), [dia, arc])
+        XCTAssertEqual(found.map(\.source.bundleID), [ChromiumProfileUtil.diaBundleID, ChromiumProfileUtil.arcBundleID])
+    }
+
+    func testSearchOffersBrowserControlOnlyWhenSuchABrowserIsInstalled() throws {
+        let chrome = try app("Google Chrome", ChromiumProfileUtil.chromeBundleID)
+        let dia = try app("Dia", ChromiumProfileUtil.diaBundleID)
+
+        let withoutDia = SettingsSearch.index(browsers: [chrome], profiles: [], rules: [], apps: [])
+        let withDia = SettingsSearch.index(browsers: [chrome, dia], profiles: [], rules: [], apps: [])
+
+        XCTAssertFalse(withoutDia.contains { $0.pane == .permissions && $0.id.hasPrefix("permissions.automation") })
+        XCTAssertEqual(SettingsSearch.results(for: "control dia", in: withDia).first?.pane, .permissions)
+    }
+
+    func testEachBrowserControlResultHasItsOwnID() throws {
+        let dia = try app("Dia", ChromiumProfileUtil.diaBundleID)
+        let arc = try app("Arc", ChromiumProfileUtil.arcBundleID)
+
+        let ids = SettingsSearch.index(browsers: [dia, arc], profiles: [], rules: [], apps: []).map(\.id)
+
+        XCTAssertEqual(Set(ids).count, ids.count)
+        XCTAssertTrue(ids.contains("permissions.automation.\(ChromiumProfileUtil.arcBundleID)"))
+    }
+}
+
 final class ReorderTests: XCTestCase {
     func testDroppingOnARowBelowPutsTheDraggedRowAfterIt() {
         var rules = ["a", "b", "c", "d"]

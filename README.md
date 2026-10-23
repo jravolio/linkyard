@@ -63,7 +63,7 @@ Download `Linkyard-<version>.zip` from the [latest release](https://github.com/j
 
 1. Linkyard isn't notarized by Apple, so macOS blocks it the first time. Open **System Settings → Privacy & Security** and click **Open Anyway**. This happens once.
 2. In Linkyard's Settings → **General**, make it your default browser.
-3. Allow **Accessibility** when asked. Rules that look at window titles (like Slack workspaces) need it.
+3. Allow **Accessibility** when asked. Rules that look at window titles (like Slack workspaces) need it. Settings → Permissions shows everything Linkyard needs and whether it's allowed.
 4. Allow Linkyard to control **Arc** and **Dia** the first time it opens a link in them. That's how it picks the space or profile.
 
 ## 🧩 Set up profiles
@@ -123,7 +123,7 @@ No. The first time Linkyard starts, it copies your Browserino browsers, profiles
 <details>
 <summary><b>A rule for my Slack workspace doesn't match.</b></summary>
 
-Window-title rules need Accessibility access. Check that Linkyard is enabled in System Settings → Privacy & Security → Accessibility. If you rebuilt the app yourself, remove the old entry and add it again, since macOS treats each build as a new app.
+Window-title rules need Accessibility access, and macOS turns it off each time Linkyard updates because releases aren't signed with a paid Apple Developer ID. Open Settings → Permissions: if Accessibility isn't allowed, click Allow… and switch Linkyard on in System Settings.
 </details>
 
 ## 🤝 Contributing

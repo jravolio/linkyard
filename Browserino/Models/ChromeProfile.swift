@@ -40,6 +40,8 @@ struct ChromiumProfileSource: Hashable {
     let kind: ProfileSourceKind
 
     var detectsArcSpaces: Bool { kind == .arc }
+    var usesAppleEvents: Bool { kind == .arc || kind == .dia }
+    var profileNoun: String { String(profileLabel.dropLast()) }
 }
 
 class ChromiumProfileUtil {
@@ -81,6 +83,17 @@ class ChromiumProfileUtil {
     )
 
     static let sources = [chromeSource, arcSource, diaSource, zenSource]
+
+    /// Each browser in `browsers` that Linkyard opens links in through Apple Events, once.
+    static func appleEventsBrowsers(in browsers: [URL]) -> [(app: URL, source: ChromiumProfileSource)] {
+        var seen: Set<String> = []
+        return browsers.compactMap { app in
+            guard let source = source(for: Bundle(url: app)?.bundleIdentifier), source.usesAppleEvents, seen.insert(source.bundleID).inserted else {
+                return nil
+            }
+            return (app, source)
+        }
+    }
 
     static func source(for bundleID: String?) -> ChromiumProfileSource? {
         guard let bundleID else {

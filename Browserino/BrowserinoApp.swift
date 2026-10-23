@@ -35,7 +35,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
 
         BrowserinoImport.importIfNeeded()
         ChromiumProfileUtil.refreshArcProfilesIfNeeded($arcProfiles, shortcuts: $shortcuts)
-        AccessibilityPermission.promptIfNeeded()
+        AccessibilityPermission.promptIfNeeded(rules: rules)
         rememberSourceApplication(NSWorkspace.shared.frontmostApplication)
         NSWorkspace.shared.notificationCenter.addObserver(
             self,
@@ -349,21 +349,6 @@ final class SourceRuleContext {
     init(application: SourceApplicationSnapshot?, readTitle: @escaping (pid_t) -> String? = WindowTitleProbe.windowTitle) {
         self.application = application
         self.readTitle = readTitle
-    }
-}
-
-private enum AccessibilityPermission {
-    private static let promptedKey = "sourceDetectionAccessibilityPrompted"
-
-    /// The flag is read first because AXIsProcessTrusted asks the TCC daemon, which takes several ms at launch.
-    static func promptIfNeeded() {
-        guard !UserDefaults.standard.bool(forKey: promptedKey), !AXIsProcessTrusted() else {
-            return
-        }
-
-        let options = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true] as CFDictionary
-        _ = AXIsProcessTrustedWithOptions(options)
-        UserDefaults.standard.set(true, forKey: promptedKey)
     }
 }
 

@@ -168,16 +168,25 @@ class BrowserUtil {
     /// sent off the main thread. One serial queue keeps links in the order they were clicked.
     private static let diaQueue = DispatchQueue(label: "Dia Apple Events", qos: .userInitiated)
 
+    /// Blocks until the app has started, so call it off the main thread.
+    static func launchIfNeeded(_ app: URL, bundleID: String, activates: Bool = true) {
+        guard NSRunningApplication.runningApplications(withBundleIdentifier: bundleID).isEmpty else {
+            return
+        }
+
+        let configuration = NSWorkspace.OpenConfiguration()
+        configuration.activates = activates
+        let launched = DispatchSemaphore(value: 0)
+        NSWorkspace.shared.openApplication(at: app, configuration: configuration) { _, _ in
+            launched.signal()
+        }
+        launched.wait()
+    }
+
     private static func openDiaURLs(_ urls: [URL], app: URL, profileName: String) {
         diaQueue.async {
             // Launching happens on the queue too, so links clicked while Dia starts still open in click order.
-            if NSRunningApplication.runningApplications(withBundleIdentifier: ChromiumProfileUtil.diaBundleID).isEmpty {
-                let launched = DispatchSemaphore(value: 0)
-                NSWorkspace.shared.openApplication(at: app, configuration: NSWorkspace.OpenConfiguration()) { _, _ in
-                    launched.signal()
-                }
-                launched.wait()
-            }
+            launchIfNeeded(app, bundleID: ChromiumProfileUtil.diaBundleID)
 
             let remaining = sendDiaURLs(urls, profileName: profileName)
             if !remaining.isEmpty {

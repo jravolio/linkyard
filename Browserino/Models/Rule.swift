@@ -16,6 +16,13 @@ struct Rule: Hashable, Codable {
 }
 
 extension Rule {
+    var windowTitlePattern: String? {
+        let pattern = sourceWindowTitleRegex?.trimmingCharacters(in: .whitespacesAndNewlines)
+        return pattern?.isEmpty == false ? pattern : nil
+    }
+
+    var readsWindowTitle: Bool { windowTitlePattern != nil }
+
     /// `windowTitle` is only called when the rule has a title pattern, since reading it is slow.
     func matches(_ urlString: String, sourceBundleID: String?, windowTitle: () -> String?) -> Bool {
         guard let urlRegex = try? Regex(regex).ignoresCase(),
@@ -32,8 +39,7 @@ extension Rule {
             }
         }
 
-        let titlePattern = sourceWindowTitleRegex?.trimmingCharacters(in: .whitespacesAndNewlines)
-        if let titlePattern, !titlePattern.isEmpty {
+        if let titlePattern = windowTitlePattern {
             guard let title = windowTitle(),
                   let titleRegex = try? Regex(titlePattern).ignoresCase(),
                   title.firstMatch(of: titleRegex) != nil

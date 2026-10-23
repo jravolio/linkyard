@@ -32,6 +32,8 @@
 		986DC8072CFE42E300447DC7 /* RulesTab.swift in Sources */ = {isa = PBXBuildFile; fileRef = 986DC8062CFE42E000447DC7 /* RulesTab.swift */; };
 		986DC8092CFE42EB00447DC7 /* Rule.swift in Sources */ = {isa = PBXBuildFile; fileRef = 986DC8082CFE42EA00447DC7 /* Rule.swift */; };
 		A1E7EA012F00000000000031 /* BrowserinoImport.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1E7EA012F00000000000032 /* BrowserinoImport.swift */; };
+		A1E7EA012F00000000000061 /* Permissions.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1E7EA012F00000000000062 /* Permissions.swift */; };
+		A1E7EA012F00000000000063 /* PermissionsTab.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1E7EA012F00000000000064 /* PermissionsTab.swift */; };
 		A1E7EA012F00000000000001 /* AppleEvents.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1E7EA012F00000000000002 /* AppleEvents.swift */; };
 		986DC80C2CFE447600447DC7 /* EditRuleForm.swift in Sources */ = {isa = PBXBuildFile; fileRef = 986DC80B2CFE447200447DC7 /* EditRuleForm.swift */; };
 		986DF3C42E45ED0500D5A3C4 /* View+FocusEffectDisabled.swift in Sources */ = {isa = PBXBuildFile; fileRef = 986DF3C32E45ED0100D5A3C4 /* View+FocusEffectDisabled.swift */; };
@@ -87,6 +89,8 @@
 		986DC8062CFE42E000447DC7 /* RulesTab.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RulesTab.swift; sourceTree = "<group>"; };
 		986DC8082CFE42EA00447DC7 /* Rule.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Rule.swift; sourceTree = "<group>"; };
 		A1E7EA012F00000000000032 /* BrowserinoImport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BrowserinoImport.swift; sourceTree = "<group>"; };
+		A1E7EA012F00000000000062 /* Permissions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Permissions.swift; sourceTree = "<group>"; };
+		A1E7EA012F00000000000064 /* PermissionsTab.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PermissionsTab.swift; sourceTree = "<group>"; };
 		A1E7EA012F00000000000002 /* AppleEvents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppleEvents.swift; sourceTree = "<group>"; };
 		986DC80B2CFE447200447DC7 /* EditRuleForm.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditRuleForm.swift; sourceTree = "<group>"; };
 		986DF3C32E45ED0100D5A3C4 /* View+FocusEffectDisabled.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "View+FocusEffectDisabled.swift"; sourceTree = "<group>"; };
@@ -210,6 +214,7 @@
 				AA00010A2F0C700100FC6D37 /* ChromeProfile.swift */,
 				986DC8082CFE42EA00447DC7 /* Rule.swift */,
 				A1E7EA012F00000000000032 /* BrowserinoImport.swift */,
+				A1E7EA012F00000000000062 /* Permissions.swift */,
 				A1E7EA012F00000000000002 /* AppleEvents.swift */,
 				664FDF212CE4AA6B009766AA /* BrowserUtil.swift */,
 			);
@@ -236,6 +241,7 @@
 				989B17F42C16FC690039441B /* ShortcutButton.swift */,
 				9830F0BA2C11DE8F00D69C88 /* PreferencesView.swift */,
 				A1E7EA012F00000000000014 /* PickerTab.swift */,
+				A1E7EA012F00000000000064 /* PermissionsTab.swift */,
 				A1E7EA012F00000000000012 /* SettingsSearch.swift */,
 				989B17FC2C17400A0039441B /* EditAppForm.swift */,
 				989B17F22C16FC550039441B /* BrowsersTab.swift */,
@@ -375,6 +381,8 @@
 				989B17F32C16FC550039441B /* BrowsersTab.swift in Sources */,
 				986DC8092CFE42EB00447DC7 /* Rule.swift in Sources */,
 				A1E7EA012F00000000000031 /* BrowserinoImport.swift in Sources */,
+				A1E7EA012F00000000000061 /* Permissions.swift in Sources */,
+				A1E7EA012F00000000000063 /* PermissionsTab.swift in Sources */,
 				A1E7EA012F00000000000001 /* AppleEvents.swift in Sources */,
 				989B17F72C16FD260039441B /* GeneralTab.swift in Sources */,
 				986DC8072CFE42E300447DC7 /* RulesTab.swift in Sources */,
@@ -414,7 +422,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;
 				MACOSX_DEPLOYMENT_TARGET = 13.0;
-				MARKETING_VERSION = 1.2.0;
+				MARKETING_VERSION = 1.2.1;
 				PRODUCT_BUNDLE_IDENTIFIER = io.github.jravolio.LinkyardTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = NO;
@@ -432,7 +440,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				GENERATE_INFOPLIST_FILE = YES;
 				MACOSX_DEPLOYMENT_TARGET = 13.0;
-				MARKETING_VERSION = 1.2.0;
+				MARKETING_VERSION = 1.2.1;
 				PRODUCT_BUNDLE_IDENTIFIER = io.github.jravolio.LinkyardTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = NO;
@@ -588,7 +596,7 @@
 					"@executable_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 13.0;
-				MARKETING_VERSION = 1.2.0;
+				MARKETING_VERSION = 1.2.1;
 				PRODUCT_BUNDLE_IDENTIFIER = io.github.jravolio.Linkyard;
 				PRODUCT_NAME = Linkyard;
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -625,7 +633,7 @@
 					"@executable_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 13.0;
-				MARKETING_VERSION = 1.2.0;
+				MARKETING_VERSION = 1.2.1;
 				PRODUCT_BUNDLE_IDENTIFIER = io.github.jravolio.Linkyard;
 				PRODUCT_NAME = Linkyard;
 				SWIFT_EMIT_LOC_STRINGS = YES;
