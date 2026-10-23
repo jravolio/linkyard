@@ -2,6 +2,14 @@
 
 Linkyard is a modified version of [Browserino](https://github.com/AlexStrNik/Browserino) by Aleksandr Strizhnev, released under the same GPL-3.0 license. This file lists what Linkyard changed.
 
+## Unreleased
+
+### Added
+- Linkyard updates itself from GitHub releases with [Sparkle](https://sparkle-project.org): it checks once a day (Settings → General → Updates, or **Check for Updates…** in the menu bar), shows the release notes and installs when you agree. Each download is checked against an EdDSA signature before it's installed. Copies from 1.2.1 and earlier don't have the updater, so the first version with it is installed by hand.
+
+### Changed
+- The app's build number now matches its version (it was always 1), which update checks compare.
+
 ## 1.2.1
 
 ### Added

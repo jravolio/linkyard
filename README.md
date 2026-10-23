@@ -39,6 +39,7 @@ Linkyard is a tiny link router for macOS. Make it your default browser, and ever
 - ⌨️ **Keyboard first**: ↑↓ picks the identity, ←→ the browser, ↵ opens, ⇧↵ opens a private window, ⌥⌘C copies the link, Esc closes. Hold ⌘ while clicking a link to skip your rules.
 - 🎯 **Opens where you look**: at the cursor or in the center of the screen, instantly or with an animation you can preview: Fade, Rise, Zoom, a Dia-style Glow, or one of seven effects, from a burn in reverse to a hologram scan.
 - 🔎 **Searchable Settings**: find any setting, browser, profile, rule or app from the sidebar search.
+- 🔄 **Updates itself**: Linkyard checks GitHub for a new release once a day, shows what changed and installs it when you agree. **Check for Updates…** is in the menu bar.
 - 🔁 **Coming from Browserino?** Linkyard imports your Browserino settings the first time it starts.
 
 ## 📸 Screenshots
@@ -57,7 +58,7 @@ Linkyard is a tiny link router for macOS. Make it your default browser, and ever
 
 ## 📦 Install
 
-Download `Linkyard-<version>.zip` from the [latest release](https://github.com/jravolio/linkyard/releases/latest), unzip it and drag **Linkyard.app** into Applications.
+Download `Linkyard-<version>.zip` from the [latest release](https://github.com/jravolio/linkyard/releases/latest), unzip it and drag **Linkyard.app** into Applications. After that, Linkyard updates itself; versions before updates were added need to be replaced by hand once.
 
 **First launch:**
 
@@ -145,5 +146,6 @@ Browserino itself, which Linkyard is built on, was written by Aleksandr Strizhne
 - **[Aleksandr Strizhnev](https://github.com/AlexStrNik)**, who created [Browserino](https://github.com/AlexStrNik/Browserino). Thank you for building it and sharing it.
 - Browserino contributors whose work is part of Linkyard: [@byt3m4st3r](https://github.com/byt3m4st3r) (browser search locations), [@mihado](https://github.com/mihado) (Esc to close), [@ventz](https://github.com/ventz) (app shortcuts and wildcard domains) and [@motilevy](https://github.com/motilevy) (Chrome profiles, [#48](https://github.com/AlexStrNik/Browserino/pull/48)).
 - Zen support relies on [Open external links in a container](https://addons.mozilla.org/firefox/addon/open-url-in-container/).
+- Updates use [Sparkle](https://sparkle-project.org) (MIT license).
 
 <sub>Linkyard is an independent community project. It isn't affiliated with Browserino's author, The Browser Company (Arc, Dia), Google (Chrome), the Zen Browser project or Apple. Product names belong to their owners.</sub>
