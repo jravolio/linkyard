@@ -2,6 +2,12 @@
 
 Linkyard is a modified version of [Browserino](https://github.com/AlexStrNik/Browserino) by Aleksandr Strizhnev, released under the same GPL-3.0 license. This file lists what Linkyard changed.
 
+## 1.2.0
+
+### Added
+- Seven picker effects in Settings → Picker, listed under Effects: Restore (a burn in reverse that heals the picker from the bottom), Ink, Thaw, Crystallize, Ripple, Hologram and Materialize. They're drawn with Metal over a snapshot of the picker, which fades into the live picker as the effect ends; pressing a key or clicking ends it early. Reduce Motion turns them into a fade.
+- An animation of the effects in the README.
+
 ## 1.1.0
 
 ### Added
