@@ -1,9 +1,10 @@
 # Sourced by render-ui.sh and render-animations.sh with $here, $root and $work set.
-# Compiles Linkyard's sources, minus the app entry point and #Preview blocks, with the given harness files into "$work/$1".
+# Compiles Linkyard's sources, minus the app entry point, files that need Sparkle and #Preview blocks, with the given harness files into "$work/$1".
 build_harness() {
   local binary=$1
   shift
-  (cd "$root/Browserino" && find . -name '*.swift' ! -name main.swift ! -name BrowserinoApp.swift ! -name BrowserinoApplication.swift ! -name Updates.swift) | while read -r file; do
+  (cd "$root/Browserino" && find . -name '*.swift' ! -name main.swift ! -name BrowserinoApp.swift ! -name BrowserinoApplication.swift) | while read -r file; do
+    grep -q '^import Sparkle' "$root/Browserino/$file" && continue
     mkdir -p "$work/src/$(dirname "$file")"
     awk '/^#Preview/{exit} {print}' "$root/Browserino/$file" > "$work/src/$file"
   done
