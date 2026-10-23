@@ -2,6 +2,14 @@
 
 Linkyard is a modified version of [Browserino](https://github.com/AlexStrNik/Browserino) by Aleksandr Strizhnev, released under the same GPL-3.0 license. This file lists what Linkyard changed.
 
+## 1.2.1
+
+### Added
+- Settings → Permissions lists what Linkyard needs macOS to allow, why, and whether it's allowed, with a button to allow it: Accessibility for window-title rules, and control of Dia and Arc for opening links in a profile or space.
+
+### Fixed
+- Rules that match a window title, like ones that tell Slack workspaces apart, stopped matching after an update: macOS turns Accessibility off for each new build, and Linkyard only ever asked once. It now asks again once per version when a rule needs it, and Settings → Rules says when those rules are skipped.
+
 ## 1.2.0
 
 ### Added
