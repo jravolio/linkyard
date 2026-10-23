@@ -17,39 +17,38 @@ struct ProfilesTab: View {
     @AppStorage("zenProfilesEnabled") private var zenProfilesEnabled: Bool = true
 
     var body: some View {
-        VStack(alignment: .leading) {
-            List {
-                ProfileSourceSection(
-                    source: ChromiumProfileUtil.chromeSource,
-                    profiles: $chromeProfiles,
-                    profilesEnabled: $chromeProfilesEnabled
-                )
+        SettingsForm {
+            ProfileSourceSection(
+                source: ChromiumProfileUtil.chromeSource,
+                profiles: $chromeProfiles,
+                profilesEnabled: $chromeProfilesEnabled
+            )
 
-                ProfileSourceSection(
-                    source: ChromiumProfileUtil.arcSource,
-                    profiles: $arcProfiles,
-                    profilesEnabled: $arcProfilesEnabled
-                )
+            ProfileSourceSection(
+                source: ChromiumProfileUtil.arcSource,
+                profiles: $arcProfiles,
+                profilesEnabled: $arcProfilesEnabled
+            )
 
-                ProfileSourceSection(
-                    source: ChromiumProfileUtil.diaSource,
-                    profiles: $diaProfiles,
-                    profilesEnabled: $diaProfilesEnabled
-                )
+            ProfileSourceSection(
+                source: ChromiumProfileUtil.diaSource,
+                profiles: $diaProfiles,
+                profilesEnabled: $diaProfilesEnabled,
+                note: "Linkyard asks Dia for its profiles while Dia is running. Keep the names the same as in Dia."
+            )
 
-                ProfileSourceSection(
-                    source: ChromiumProfileUtil.zenSource,
-                    profiles: $zenProfiles,
-                    profilesEnabled: $zenProfilesEnabled
-                )
+            ProfileSourceSection(
+                source: ChromiumProfileUtil.zenSource,
+                profiles: $zenProfiles,
+                profilesEnabled: $zenProfilesEnabled,
+                note: "Opening a container needs the “Open external links in a container” add-on in Zen."
+            )
+
+            Section {
+            } footer: {
+                Text("Click a profile's icon to give it a logo. Profiles with the same name in different browsers share one row in the picker.")
             }
-
-            Text("Detect Chrome and Dia profiles, Arc spaces and Zen containers and show them as separate picker items. Click an icon to give a profile its own logo, assign shortcuts and hide entries you don't use.")
-                .font(.subheadline)
-                .foregroundStyle(.primary.opacity(0.5))
-                .frame(maxWidth: .infinity)
         }
-        .padding(.bottom, 20)
     }
 }
 
@@ -58,13 +57,14 @@ private struct ProfileSourceSection: View {
 
     @Binding var profiles: [ChromeProfile]
     @Binding var profilesEnabled: Bool
+    var note: String? = nil
 
     @AppStorage("shortcuts") private var shortcuts: [String: String] = [:]
 
     @State private var hasDetected = false
 
-    private var isInstalled: Bool {
-        ChromiumProfileUtil.appURL(for: source) != nil
+    private var appURL: URL? {
+        ChromiumProfileUtil.appURL(for: source)
     }
 
     private var shouldRefreshProfiles: Bool {
@@ -84,7 +84,7 @@ private struct ProfileSourceSection: View {
 
     /// List rows must have IDs unique across every section; Dia and Zen can both have a "Personal" profile.
     private var rows: [(index: Int, profile: ChromeProfile, id: String)] {
-        profiles.enumerated().map { ($0.offset, $0.element, "\(source.bundleID)::\($0.element.selectionID)") }
+        profiles.enumerated().map { ($0.offset, $0.element, ChromiumProfileUtil.profileID(source.bundleID, $0.element.selectionID)) }
     }
 
     private func displayName(at index: Int) -> Binding<String> {
@@ -101,79 +101,72 @@ private struct ProfileSourceSection: View {
         )
     }
 
+    private func isVisible(at index: Int) -> Binding<Bool> {
+        Binding(
+            get: { !profiles[index].isHidden },
+            set: { profiles[index].isHidden = !$0 }
+        )
+    }
+
     var body: some View {
-        Section(header: Text(source.displayName)) {
-            if !isInstalled {
-                Text("\(source.displayName) is not installed.")
-                    .foregroundStyle(.secondary)
-                    .padding(10)
-            } else {
-                HStack(spacing: 16) {
-                    Toggle(isOn: $profilesEnabled) {
-                        Text("Show \(source.displayName) \(source.profileLabel) as separate items in the picker")
-                            .font(.callout)
-                    }
-
-                    Spacer()
-
-                    Button(action: detectProfiles) {
-                        Text("Detect \(source.profileLabel.capitalized)")
-                    }
-                }
-                .padding(.vertical, 4)
+        if let appURL {
+            Section {
+                Toggle("Show \(source.displayName) \(source.profileLabel) in the picker", isOn: $profilesEnabled)
 
                 if profiles.isEmpty {
-                    Text("No \(source.profileLabel) detected.")
+                    Text("No \(source.profileLabel) found.")
                         .foregroundStyle(.secondary)
-                        .padding(10)
                 }
 
                 ForEach(rows, id: \.id) { index, profile, rowID in
-                    HStack {
-                        ProfileIconPicker(
-                            appPath: ChromiumProfileUtil.appURL(for: source)?.path,
-                            iconPath: iconPath(at: index)
-                        )
+                    HStack(spacing: 10) {
+                        ProfileIconPicker(appPath: appURL.path, name: profile.displayName, iconPath: iconPath(at: index))
 
-                        TextField("Display name", text: displayName(at: index))
-                            .font(.system(size: 14))
-                            .frame(maxWidth: 200)
+                        TextField("Name", text: displayName(at: index))
+                            .labelsHidden()
+                            .frame(maxWidth: 180)
 
-                        Spacer()
-                            .frame(width: 16)
-
-                        Text(profile.arcSpaceID != nil
-                            ? "\(profile.directoryName) space"
-                            : profile.directoryName)
-                            .font(.system(size: 12).monospaced())
-                            .foregroundStyle(.secondary)
-
-                        Spacer()
-
-                        ShortcutButton(
-                            browserId: rowID
-                        )
-
-                        Spacer()
-                            .frame(width: 8)
-
-                        Button(action: {
-                            profiles[index].isHidden.toggle()
-                        }) {
-                            Image(
-                                systemName: profile.isHidden
-                                    ? "eye.slash.fill" : "eye.fill"
-                            )
+                        if profile.arcSpaceID != nil || profile.directoryName != profile.displayName {
+                            Text(profile.arcSpaceID != nil ? "\(profile.directoryName) space" : profile.directoryName)
+                                .font(.caption.monospaced())
+                                .foregroundStyle(.secondary)
+                                .lineLimit(1)
                         }
-                        .buttonStyle(.plain)
+
+                        Spacer()
+
+                        ShortcutButton(browserId: rowID, name: "\(profile.displayName) in \(source.displayName)")
+
+                        Toggle("Show \(profile.displayName) in \(source.displayName) in the picker", isOn: isVisible(at: index))
+                            .labelsHidden()
+                            .toggleStyle(.switch)
+                            .controlSize(.small)
                     }
-                    .padding(10)
+                    .disabled(!profilesEnabled)
+                    .settingsItem(SettingsItemID.profile(source, profile))
+                }
+            } header: {
+                HStack(spacing: 6) {
+                    ProfileIcon(appPath: appURL.path, size: 16)
+                    Text(source.displayName)
+                        .settingsItem(SettingsItemID.profiles(source))
+                    Spacer()
+                    Button {
+                        detectProfiles()
+                    } label: {
+                        Label("Detect", systemImage: "arrow.clockwise")
+                    }
+                    .help("Look for \(source.profileLabel) again")
+                }
+            } footer: {
+                if let note {
+                    Text(note)
                 }
             }
-        }
-        .onAppear {
-            if !hasDetected && isInstalled && shouldRefreshProfiles {
-                detectProfiles()
+            .onAppear {
+                if !hasDetected && shouldRefreshProfiles {
+                    detectProfiles()
+                }
             }
         }
     }
@@ -181,20 +174,21 @@ private struct ProfileSourceSection: View {
 
 private struct ProfileIconPicker: View {
     let appPath: String?
+    let name: String
 
     @Binding var iconPath: String?
 
     var body: some View {
         Button(action: chooseIcon) {
             if let appPath {
-                ProfileIcon(appPath: appPath, iconPath: iconPath, size: 20)
+                ProfileIcon(appPath: appPath, iconPath: iconPath, size: 24)
             } else {
                 Image(systemName: "photo")
             }
         }
         .buttonStyle(.plain)
         .help("Choose an icon for this profile")
-        .accessibilityLabel("Profile icon")
+        .accessibilityLabel("Logo for \(name)")
         .contextMenu {
             if iconPath != nil {
                 Button("Remove Icon") {

@@ -81,7 +81,8 @@ class BrowserUtil {
             NSWorkspace.shared.open(urls, withApplicationAt: app, configuration: NSWorkspace.OpenConfiguration())
             return
         case .dia:
-            if let profileDirectory, !isIncognito, openDiaURLs(urls, profileName: profileDirectory) {
+            if let profileDirectory, !isIncognito {
+                openDiaURLs(urls, app: app, profileName: profileDirectory)
                 return
             }
         case .zenContainers:
@@ -163,29 +164,76 @@ class BrowserUtil {
         """)
     }
 
-    private static func openDiaURLs(_ urls: [URL], profileName: String) -> Bool {
-        guard !urls.isEmpty else {
-            return false
+    /// Each event waits for Dia's reply (~100 ms a link, as long as the first Automation prompt stays up), so they're
+    /// sent off the main thread. One serial queue keeps links in the order they were clicked.
+    private static let diaQueue = DispatchQueue(label: "Dia Apple Events", qos: .userInitiated)
+
+    private static func openDiaURLs(_ urls: [URL], app: URL, profileName: String) {
+        diaQueue.async {
+            // Launching happens on the queue too, so links clicked while Dia starts still open in click order.
+            if NSRunningApplication.runningApplications(withBundleIdentifier: ChromiumProfileUtil.diaBundleID).isEmpty {
+                let launched = DispatchSemaphore(value: 0)
+                NSWorkspace.shared.openApplication(at: app, configuration: NSWorkspace.OpenConfiguration()) { _, _ in
+                    launched.signal()
+                }
+                launched.wait()
+            }
+
+            let remaining = sendDiaURLs(urls, profileName: profileName)
+            if !remaining.isEmpty {
+                DispatchQueue.main.async {
+                    NSWorkspace.shared.open(remaining, withApplicationAt: app, configuration: NSWorkspace.OpenConfiguration())
+                }
+            }
+        }
+    }
+
+    typealias AppleEventSender = (
+        _ eventClass: String,
+        _ eventID: String,
+        _ parameters: [String: NSAppleEventDescriptor],
+        _ waitsForReply: Bool
+    ) throws -> NSAppleEventDescriptor
+
+    /// The events AppleScript sends for `activate` and `make new tab at end of tabs of (first profile whose name is …)
+    /// of front window`. Making a tab in a profile already switches the window to that profile and focuses the tab.
+    /// Returns the links it couldn't open, which the caller opens in Dia without picking a profile.
+    static func sendDiaURLs(
+        _ urls: [URL],
+        profileName: String,
+        send: AppleEventSender = { try AppleEvents.send($0, $1, to: ChromiumProfileUtil.diaBundleID, $2, waitsForReply: $3) }
+    ) -> [URL] {
+        let tabs = AppleEvents.every("DiaT", of: AppleEvents.named("DiaP", profileName, of: AppleEvents.element("cwin", at: 1)))
+        var opened = 0
+        func makeTabs() throws {
+            for url in urls[opened...] {
+                _ = try send("core", "crel", [
+                    "kocl": AppleEvents.type("DiaT"),
+                    "insh": AppleEvents.end(of: tabs),
+                    "prdt": AppleEvents.record(["URL ": NSAppleEventDescriptor(string: url.absoluteString)]),
+                ], true)
+                opened += 1
+            }
         }
 
-        return runAppleScript("""
-        tell application id "\(ChromiumProfileUtil.diaBundleID)"
-            activate
-            if (count of windows) is 0 then make new window
-            tell front window
-                set targetProfile to missing value
-                repeat with diaProfile in profiles
-                    if name of diaProfile is "\(escapeAppleScriptString(profileName))" then set targetProfile to diaProfile
-                end repeat
-                if targetProfile is missing value then error "Dia profile not found"
-                tell targetProfile
-                    focus
-        \(tabCommands(for: urls, making: "set newTab to make new tab at end of tabs"))
-                end tell
-                tell newTab to focus
-            end tell
-        end tell
-        """)
+        do {
+            _ = try send("misc", "actv", [:], false)
+            do {
+                try makeTabs()
+            } catch {
+                // Counting windows first would cost an event on every link; Dia only has none after its last window closed.
+                let windows = try send("core", "cnte", ["kocl": AppleEvents.type("cwin"), "----": .null()], true)
+                guard windows.paramDescriptor(forKeyword: keyDirectObject)?.int32Value == 0 else {
+                    throw error
+                }
+                _ = try send("core", "crel", ["kocl": AppleEvents.type("cwin")], true)
+                try makeTabs()
+            }
+            return []
+        } catch {
+            print("Failed to open Dia with Apple Events: \(error)")
+            return Array(urls[opened...])
+        }
     }
 
     /// Handled by the "Open external links in a container" Firefox add-on, which must be installed in Zen.
@@ -200,9 +248,9 @@ class BrowserUtil {
         return URL(string: "ext+container:name=\(name)&url=\(target)")
     }
 
-    private static func tabCommands(for urls: [URL], making command: String = "make new tab") -> String {
+    private static func tabCommands(for urls: [URL]) -> String {
         urls.map {
-            "                \(command) with properties {URL:\"\(escapeAppleScriptString($0.absoluteString))\"}"
+            "                make new tab with properties {URL:\"\(escapeAppleScriptString($0.absoluteString))\"}"
         }
         .joined(separator: "\n")
     }

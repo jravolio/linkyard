@@ -12,98 +12,98 @@ struct BrowsersTab: View {
     @AppStorage("hiddenBrowsers") private var hiddenBrowsers: [URL] = []
     @AppStorage("privateArgs") private var privateArgs: [String: String] = [:]
 
-    private func move(from source: IndexSet, to destination: Int) {
-        browsers.move(fromOffsets: source, toOffset: destination)
+    private func isVisible(_ browser: URL) -> Binding<Bool> {
+        Binding(
+            get: { !hiddenBrowsers.contains(browser) },
+            set: { visible in
+                hiddenBrowsers.removeAll { $0 == browser }
+                if !visible {
+                    hiddenBrowsers.append(browser)
+                }
+            }
+        )
     }
 
-    private func privateArg(for key: String) -> Binding<String> {
-        return .init(
-            get: { self.privateArgs[key, default: ""] },
-            set: { self.privateArgs[key] = $0 })
+    private func privateArg(for bundleID: String) -> Binding<String> {
+        Binding(
+            get: { privateArgs[bundleID, default: ""] },
+            set: { privateArgs[bundleID] = $0 }
+        )
+    }
+
+    /// Browsers that were uninstalled stay stored but aren't shown, so moves are made between the rows on screen.
+    private func moveShown(_ shown: [(offset: Int, element: URL)], from: Int, to: Int) {
+        browsers.move(from: shown[from].offset, to: shown[to].offset)
     }
 
     var body: some View {
-        VStack(alignment: .leading) {
-            List {
-                ForEach(Array(browsers.enumerated()), id: \.offset) { offset, browser in
-                    if let bundle = Bundle(url: browser) {
-                        HStack {
-                            Text((offset + 1).formatted())
-                                .font(
-                                    .system(size: 16)
-                                )
-                                .frame(width: 30, alignment: .leading)
+        let shown = Array(browsers.enumerated().filter { Bundle(url: $0.element)?.bundleIdentifier != nil })
 
-                            Image(nsImage: NSWorkspace.shared.icon(forFile: bundle.bundlePath))
-                                .resizable()
-                                .frame(width: 32, height: 32)
+        SettingsForm {
+            Section {
+                ForEach(Array(shown.enumerated()), id: \.element.element) { index, entry in
+                    let browser = entry.element
+                    if let bundleID = Bundle(url: browser)?.bundleIdentifier {
+                        HStack(spacing: 10) {
+                            ProfileIcon(appPath: browser.path, size: 24)
+
+                            Text(browser.appDisplayName)
 
                             Spacer()
-                                .frame(width: 8)
 
-                            Text(bundle.infoDictionary!["CFBundleName"] as! String)
-                                .font(
-                                    .system(size: 14)
-                                )
+                            ShortcutButton(browserId: bundleID, name: browser.appDisplayName)
 
-                            Spacer()
-                                .frame(width: 32)
-
-                            TextField(
-                                "Private argument",
-                                text: privateArg(for: bundle.bundleIdentifier!)
-                            )
-                            .font(
-                                .system(size: 14).monospaced()
-                            )
-
-                            Spacer()
-                                .frame(width: 32)
-
-                            ShortcutButton(
-                                browserId: bundle.bundleIdentifier!
-                            )
-
-                            Spacer()
-                                .frame(width: 8)
-
-                            Button(action: {
-                                if let idx = hiddenBrowsers.firstIndex(of: browser) {
-                                    hiddenBrowsers.remove(at: idx)
-                                } else {
-                                    hiddenBrowsers.append(browser)
-                                }
-                            }) {
-                                Image(
-                                    systemName: hiddenBrowsers.contains(browser)
-                                        ? "eye.slash.fill" : "eye.fill")
-                            }
-                            .buttonStyle(.plain)
+                            Toggle("Show \(browser.appDisplayName) in the picker", isOn: isVisible(browser))
+                                .labelsHidden()
+                                .toggleStyle(.switch)
+                                .controlSize(.small)
                         }
-                        .padding(10)
+                        .reorderable(at: index, count: shown.count) { moveShown(shown, from: $0, to: $1) }
+                        .settingsItem(SettingsItemID.browser(browser))
                     }
                 }
-                .onMove(perform: move)
-            }
-            .onAppear {
-                if browsers.isEmpty {
-                    browsers = BrowserUtil.loadBrowsers(
-                        oldBrowsers: browsers
-                    )
+            } header: {
+                HStack {
+                    Text("Browsers")
+                        .settingsItem("browsers.list")
+                    Spacer()
+                    Button("Rescan") {
+                        browsers = BrowserUtil.loadBrowsers(oldBrowsers: browsers)
+                    }
+                    .settingsItem("browsers.rescan")
                 }
+            } footer: {
+                Text("The picker shows browsers in this order; drag a browser onto another to move it there. Switch a browser off to hide it from the picker.")
             }
 
-            Text(
-                "Drag and drop to reorder. Press record to assign a shortcut. Click on eye to hide unwanted browsers from prompt"
-            )
-            .font(.subheadline)
-            .foregroundStyle(.primary.opacity(0.5))
-            .frame(maxWidth: .infinity)
+            Section {
+                ForEach(browsers, id: \.self) { browser in
+                    if let bundleID = Bundle(url: browser)?.bundleIdentifier {
+                        LabeledContent(browser.appDisplayName) {
+                            TextField(browser.appDisplayName, text: privateArg(for: bundleID), prompt: Text("Not set"))
+                                .labelsHidden()
+                                .font(.body.monospaced())
+                                .multilineTextAlignment(.trailing)
+                        }
+                    }
+                }
+            } header: {
+                Text("Private windows")
+                    .settingsItem("browsers.private")
+            } footer: {
+                Text("The command-line flag Linkyard passes when you press ⇧↵ in the picker, like --incognito for Chrome.")
+            }
+
+            BrowserLocationsSection()
         }
-        .padding(.bottom, 20)
+        .onAppear {
+            if browsers.isEmpty {
+                browsers = BrowserUtil.loadBrowsers(oldBrowsers: browsers)
+            }
+        }
     }
 }
 
 #Preview {
-    PreferencesView()
+    BrowsersTab()
 }

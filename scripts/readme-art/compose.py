@@ -66,5 +66,5 @@ shoot("linkyard-hero", f"""
     box-shadow:0 0 0 .5px rgba(255,255,255,.22),0 40px 90px rgba(0,0,0,.6),0 10px 24px rgba(0,0,0,.4)">
 </div>""", 1200, 640)
 
-shoot("screenshots/settings-profiles", f"""<div style="padding:40px;{WALLPAPER}">{window("Linkyard Settings — Profiles", renders / "settings-profiles.png", 760, 440, 600)}</div>""", 840, 724)
-shoot("screenshots/settings-rules", f"""<div style="padding:40px;{WALLPAPER}">{window("Linkyard Settings — Rules", renders / "settings-rules.png", 760)}</div>""", 840, 524)
+shoot("screenshots/settings-profiles", f"""<div style="padding:40px;{WALLPAPER}">{window("Linkyard Settings — Profiles", renders / "settings-profiles.png", 760, 388, 640)}</div>""", 840, 764)
+shoot("screenshots/settings-rules", f"""<div style="padding:40px;{WALLPAPER}">{window("Linkyard Settings — Rules", renders / "settings-rules.png", 760)}</div>""", 840, 474)

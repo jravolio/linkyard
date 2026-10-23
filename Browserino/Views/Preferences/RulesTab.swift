@@ -7,127 +7,130 @@
 
 import SwiftUI
 
-struct AddRule: View {
-    @State private var addPresented = false
-    
-    var body: some View {
-        HStack {
-            Image(systemName: "plus")
-                .font(
-                    .system(size: 14)
-                )
-                .opacity(0)
-            
-            Text("Add a rule by matching a URL, optional source app/window, and selecting a target app.")
-                .foregroundStyle(.secondary)
-                .frame(maxWidth: .infinity, alignment: .leading)
-            
-            Spacer()
-                .frame(width: 16)
-            
-            Button(action: {
-                addPresented.toggle()
-            }) {
-                Text("Add new rule")
-            }
-            .sheet(isPresented: $addPresented) {
-                NewRuleForm(
-                    isPresented: $addPresented
-                )
-            }
-        }
+extension Rule {
+    var title: String {
+        regex == ".*" ? "Any link" : regex
     }
-}
 
-struct RuleItem: View {
-    @Binding var rule: Rule
-    @State private var editPresented = false
+    func targetProfile(in profiles: [String: [ChromeProfile]]) -> ChromeProfile? {
+        guard let profileDirectory, let bundleID = Bundle(url: app)?.bundleIdentifier else {
+            return nil
+        }
 
-    private var sourceDescription: String? {
-        var parts: [String] = []
+        return profiles[bundleID]?.first { $0.matches(profileDirectory) }
+    }
 
-        if let sourceApp = rule.sourceApp, Bundle(url: sourceApp) != nil {
+    func summary(profiles: [String: [ChromeProfile]]) -> String {
+        var target = app.appDisplayName
+        if let profileDirectory {
+            target += " · \(targetProfile(in: profiles)?.displayName ?? profileDirectory)"
+        }
+
+        var parts = ["Opens in \(target)"]
+        if let sourceApp {
             parts.append("from \(sourceApp.appDisplayName)")
         }
-
-        if let sourceWindowTitleRegex = rule.sourceWindowTitleRegex,
-           !sourceWindowTitleRegex.isEmpty {
-            parts.append("window matches /\(sourceWindowTitleRegex)/")
+        if let sourceWindowTitleRegex, !sourceWindowTitleRegex.isEmpty {
+            parts.append("window matches “\(sourceWindowTitleRegex)”")
         }
-
-        return parts.isEmpty ? nil : parts.joined(separator: ", ")
-    }
-    
-    var body: some View {
-        let bundle = Bundle(url: rule.app)!
-
-        HStack {
-            VStack(alignment: .leading, spacing: 4) {
-                Button(action: {
-                    editPresented.toggle()
-                }) {
-                    Label(rule.regex, systemImage: "pencil")
-                        .font(
-                            .system(size: 14)
-                        )
-                        .foregroundStyle(.primary)
-                }
-                .buttonStyle(.plain)
-
-                if let sourceDescription {
-                    Text(sourceDescription)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-            }
-             
-            Spacer()
-            
-            
-            Text(bundle.infoDictionary!["CFBundleName"] as! String)
-                .font(
-                    .system(size: 14)
-                )
-            
-            
-            Spacer()
-                .frame(width: 8)
-            
-            Image(nsImage: NSWorkspace.shared.icon(forFile: bundle.bundlePath))
-                .resizable()
-                .frame(width: 32, height: 32)
-        }
-        .padding(10)
-        .sheet(isPresented: $editPresented) {
-            EditRuleForm(
-                rule: $rule,
-                isPresented: $editPresented
-            )
-        }
+        return parts.joined(separator: ", ")
     }
 }
 
 struct RulesTab: View {
     @AppStorage("rules") private var rules: [Rule] = []
-    
-    var body: some View {
-        VStack (alignment: .leading) {
-            List {
-                AddRule()
+    @AppStorage("chromeProfiles") private var chromeProfiles: [ChromeProfile] = []
+    @AppStorage("arcProfiles") private var arcProfiles: [ChromeProfile] = []
+    @AppStorage("diaProfiles") private var diaProfiles: [ChromeProfile] = []
+    @AppStorage("zenProfiles") private var zenProfiles: [ChromeProfile] = []
 
-                ForEach(Array($rules.enumerated()), id: \.offset) { offset, rule in
-                    RuleItem(
-                        rule: rule
-                    )
+    @State private var editor: ListEditor?
+
+    private var profilesByBundleID: [String: [ChromeProfile]] {
+        [
+            ChromiumProfileUtil.chromeBundleID: chromeProfiles,
+            ChromiumProfileUtil.arcBundleID: arcProfiles,
+            ChromiumProfileUtil.diaBundleID: diaProfiles,
+            ChromiumProfileUtil.zenBundleID: zenProfiles,
+        ]
+    }
+
+    var body: some View {
+        let profiles = profilesByBundleID
+
+        SettingsForm {
+            Section {
+                if rules.isEmpty {
+                    Text("No rules yet, so every link opens the picker.")
+                        .foregroundStyle(.secondary)
+                }
+
+                ForEach(Array(rules.enumerated()), id: \.offset) { index, rule in
+                    HStack(spacing: 10) {
+                        ProfileIcon(appPath: rule.app.path, iconPath: rule.targetProfile(in: profiles)?.iconPath, size: 28)
+
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(rule.title)
+                                .font(rule.regex == ".*" ? .body : .body.monospaced())
+                                .lineLimit(1)
+                            Text(rule.summary(profiles: profiles))
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                                .lineLimit(2)
+                        }
+
+                        Spacer()
+
+                        Button("Edit…") {
+                            editor = .existing(index)
+                        }
+                        .accessibilityLabel("Edit rule \(rule.title)")
+                    }
+                    .contextMenu {
+                        Button("Edit…") {
+                            editor = .existing(index)
+                        }
+                        Button("Delete", role: .destructive) {
+                            rules.remove(at: index)
+                        }
+                    }
+                    .reorderable(at: index, count: rules.count) { rules.move(from: $0, to: $1) }
+                    .settingsItem(SettingsItemID.rule(index))
+                }
+            } header: {
+                HStack {
+                    Text("Rules")
+                    Spacer()
+                    Button {
+                        editor = .new
+                    } label: {
+                        Label("Add Rule", systemImage: "plus")
+                    }
+                    .settingsItem("rules.add")
+                }
+            } footer: {
+                Text("Rules are checked from top to bottom, and the first one that matches opens the link without the picker. Drag a rule onto another to change the order. Hold ⌘ when you click a link to skip your rules.")
+            }
+        }
+        .sheet(item: $editor) { editor in
+            switch editor {
+            case .new:
+                RuleForm(rule: nil, onCancel: { self.editor = nil }, onSave: {
+                    rules.append($0)
+                    self.editor = nil
+                })
+            case .existing(let index):
+                if rules.indices.contains(index) {
+                    RuleForm(rule: rules[index], onCancel: { self.editor = nil }, onSave: {
+                        rules[index] = $0
+                        self.editor = nil
+                    }, onDelete: {
+                        rules.remove(at: index)
+                        self.editor = nil
+                    })
                 }
             }
-            
-            Text("Type a URL regex and choose where matching links open. Source conditions can route links from specific apps or Slack workspaces.")
-                .font(.subheadline)
-                .foregroundStyle(.primary.opacity(0.5))
-                .frame(maxWidth: .infinity)
         }
-        .padding(.bottom, 20)
     }
 }
 

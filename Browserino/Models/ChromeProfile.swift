@@ -5,6 +5,7 @@
 
 import AppKit
 import Foundation
+import SwiftUI
 
 struct ChromeProfile: Codable, Hashable {
     var directoryName: String
@@ -15,6 +16,11 @@ struct ChromeProfile: Codable, Hashable {
 
     var selectionID: String {
         arcSpaceID ?? directoryName
+    }
+
+    /// Rules saved before Arc spaces were keyed by ID still name the profile folder.
+    func matches(_ selection: String) -> Bool {
+        selectionID == selection || directoryName == selection
     }
 }
 
@@ -134,17 +140,14 @@ class ChromiumProfileUtil {
     }
 
     private static func detectDiaProfiles(source: ChromiumProfileSource) -> [ChromeProfile] {
+        // `name of every profile of front window`; it fails when Dia has no window.
         if !NSRunningApplication.runningApplications(withBundleIdentifier: diaBundleID).isEmpty,
-           let script = NSAppleScript(source: """
-           tell application id "\(diaBundleID)"
-               if (count of windows) is 0 then return {}
-               return name of every profile of front window
-           end tell
-           """) {
-            var error: NSDictionary?
-            let result = script.executeAndReturnError(&error)
-            let names = (0..<result.numberOfItems).compactMap { result.atIndex($0 + 1)?.stringValue }
-            if error == nil, !names.isEmpty {
+           let reply = try? AppleEvents.send("core", "getd", to: diaBundleID, [
+               "----": AppleEvents.property("pnam", of: AppleEvents.every("DiaP", of: AppleEvents.element("cwin", at: 1))),
+           ]),
+           let list = reply.paramDescriptor(forKeyword: keyDirectObject) {
+            let names = (0..<list.numberOfItems).compactMap { list.atIndex($0 + 1)?.stringValue }
+            if !names.isEmpty {
                 return names.map { ChromeProfile(directoryName: $0, displayName: $0) }
             }
         }
@@ -181,14 +184,28 @@ class ChromiumProfileUtil {
         }
     }
 
+    /// Shortcuts and picker groups are stored under this ID, so its format can't change.
+    static func profileID(_ bundleID: String, _ selectionID: String) -> String {
+        "\(bundleID)::\(selectionID)"
+    }
+
     /// Re-detects Arc spaces when they changed, and moves shortcuts saved under a profile folder to the space ID.
-    static func refreshArcProfilesIfNeeded(_ profiles: inout [ChromeProfile], shortcuts: inout [String: String]) {
-        guard shouldRefreshProfiles(for: arcSource, profiles: profiles) else {
+    /// Writes only what changed: every write redraws the views that read these settings.
+    static func refreshArcProfilesIfNeeded(_ profiles: Binding<[ChromeProfile]>, shortcuts: Binding<[String: String]>) {
+        let current = profiles.wrappedValue
+        guard shouldRefreshProfiles(for: arcSource, profiles: current) else {
             return
         }
 
-        profiles = refreshProfiles(for: arcSource, existing: profiles)
-        shortcuts = migrateShortcuts(shortcuts, for: arcSource, profiles: profiles)
+        let refreshed = refreshProfiles(for: arcSource, existing: current)
+        let currentShortcuts = shortcuts.wrappedValue
+        let migrated = migrateShortcuts(currentShortcuts, for: arcSource, profiles: refreshed)
+        if refreshed != current {
+            profiles.wrappedValue = refreshed
+        }
+        if migrated != currentShortcuts {
+            shortcuts.wrappedValue = migrated
+        }
     }
 
     static func refreshProfiles(for source: ChromiumProfileSource, existing: [ChromeProfile]) -> [ChromeProfile] {
@@ -211,8 +228,8 @@ class ChromiumProfileUtil {
         var migratedShortcuts = shortcuts
 
         for profile in profiles where profile.selectionID != profile.directoryName {
-            let oldID = "\(source.bundleID)::\(profile.directoryName)"
-            let newID = "\(source.bundleID)::\(profile.selectionID)"
+            let oldID = profileID(source.bundleID, profile.directoryName)
+            let newID = profileID(source.bundleID, profile.selectionID)
 
             guard migratedShortcuts[newID] == nil,
                   let shortcut = migratedShortcuts[oldID]
@@ -274,7 +291,7 @@ class ChromiumProfileUtil {
         }
 
         return detectArcSpaces().first {
-            $0.selectionID == selection || $0.directoryName == selection
+            $0.matches(selection)
         }?.arcSpaceID
     }
 

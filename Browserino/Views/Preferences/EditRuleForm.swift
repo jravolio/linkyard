@@ -7,54 +7,6 @@
 
 import SwiftUI
 
-struct EditRuleForm: View {
-    @Binding var rule: Rule
-    @Binding var isPresented: Bool
-    
-    @AppStorage("rules") private var rules: [Rule] = []
-    
-    var body: some View {
-        RuleForm(
-            rule: rule,
-            onCancel: {
-                isPresented.toggle()
-            },
-            onSave: {
-                rule = $0
-                isPresented.toggle()
-            },
-            onDelete: {
-                rules.removeAll {
-                    $0 == rule
-                }
-                isPresented.toggle()
-            }
-        )
-    }
-}
-
-struct NewRuleForm: View {
-    @Binding var isPresented: Bool
-    
-    @AppStorage("rules") private var rules: [Rule] = []
-    
-    var body: some View {
-        RuleForm(
-            rule: nil,
-            onCancel: {
-                isPresented.toggle()
-            },
-            onSave: {
-                rules.append($0)
-                isPresented.toggle()
-            },
-            onDelete: {
-                isPresented.toggle()
-            }
-        )
-    }
-}
-
 private struct RuleTargetOption: Identifiable, Hashable {
     let id: String
     let appURL: URL
@@ -67,7 +19,7 @@ struct RuleForm: View {
 
     var onCancel: () -> Void
     var onSave: (Rule) -> Void
-    var onDelete: () -> Void
+    var onDelete: (() -> Void)? = nil
 
     @AppStorage("chromeProfiles") private var chromeProfiles: [ChromeProfile] = []
     @AppStorage("chromeProfilesEnabled") private var chromeProfilesEnabled: Bool = true
@@ -83,8 +35,8 @@ struct RuleForm: View {
     @State private var openWithPresented = false
     @State private var sourceAppPresented = false
 
-    @State private var regex: String = ""
-    @State private var testUrls: String = "https://github.com/jravolio/linkyard\nhttps://example.com"
+    @State private var regex: String = ".*"
+    @State private var testLink: String = "https://github.com/jravolio/linkyard"
     @State private var url: URL?
     @State private var profileDirectory: String? = nil
     @State private var sourceApp: URL? = nil
@@ -102,19 +54,8 @@ struct RuleForm: View {
         trimmedSourceWindowTitleRegex.isEmpty || (try? Regex(trimmedSourceWindowTitleRegex).ignoresCase()) != nil
     }
     
-    private var attributtedText: AttributedString {
-        var string = AttributedString(testUrls)
-        guard let compiledRegex else {
-            return string
-        }
-        
-        for line in testUrls.split(separator: "\n") {
-            if line.firstMatch(of: compiledRegex) != nil, let range = string.range(of: line) {
-                string[range].foregroundColor = .red
-            }
-        }
-        
-        return string
+    private var testLinkMatches: Bool {
+        compiledRegex.map { testLink.firstMatch(of: $0) != nil } ?? false
     }
 
     private func profileSettings(for bundleID: String) -> (profiles: [ChromeProfile], enabled: Bool)? {
@@ -215,56 +156,94 @@ struct RuleForm: View {
         )
     }
 
+    private var showsProfilePicker: Bool {
+        guard let bundleID = selectedAppBundleID,
+              ChromiumProfileUtil.source(for: bundleID) != nil,
+              !selectedAppProfiles.isEmpty
+        else {
+            return false
+        }
+
+        return selectedTargetOption == nil || profileSettings(for: bundleID)?.enabled == false
+    }
+
+    private func save() {
+        guard let url else {
+            return
+        }
+
+        let bundleID = Bundle(url: url)?.bundleIdentifier
+        onSave(
+            Rule(
+                regex: regex,
+                app: url,
+                profileDirectory: selectedAppProfiles.isEmpty
+                    ? nil
+                    : normalizedProfileDirectory(profileDirectory, bundleID: bundleID ?? ""),
+                sourceApp: sourceApp,
+                sourceWindowTitleRegex: trimmedSourceWindowTitleRegex.isEmpty
+                    ? nil
+                    : trimmedSourceWindowTitleRegex
+            )
+        )
+    }
+
     private func normalizedProfileDirectory(_ value: String?, bundleID: String) -> String? {
         guard bundleID == ChromiumProfileUtil.arcBundleID, let value else {
             return value
         }
 
         return selectedAppProfiles.first {
-            $0.selectionID == value || $0.directoryName == value
+            $0.matches(value)
         }?.selectionID ?? value
     }
     
     var body: some View {
-        Form {
-            Section(
-                header: Text("General")
-                    .font(.headline)
-            ) {
-                TextField("Regex:", text: $regex)
-                    .font(
-                        .system(size: 14)
-                    )
-                
-                LabeledContent("Test URLs:") {
-                    TextEditor(text: $testUrls)
-                        .font(
-                            .system(size: 14)
-                        )
+        VStack(spacing: 0) {
+            Form {
+                Section {
+                    LabeledContent("URL pattern") {
+                        TextField("URL pattern", text: $regex, prompt: Text(".* matches every link"))
+                            .labelsHidden()
+                            .font(.body.monospaced())
+                            .multilineTextAlignment(.trailing)
+                    }
+
+                    if compiledRegex == nil {
+                        Text("This isn't a valid regular expression.")
+                            .font(.caption)
+                            .foregroundStyle(.red)
+                    }
+
+                    LabeledContent {
+                        TextField("Test a link", text: $testLink, prompt: Text("Paste a link"))
+                            .labelsHidden()
+                            .multilineTextAlignment(.trailing)
+                    } label: {
+                        Text("Test a link")
+                        Label(testLinkMatches ? "Matches" : "Doesn't match", systemImage: testLinkMatches ? "checkmark.circle.fill" : "xmark.circle")
+                            .foregroundStyle(testLinkMatches ? Color.green : Color.secondary)
+                    }
+                } header: {
+                    Text("Match links")
+                } footer: {
+                    Text("A regular expression, matched anywhere in the link and ignoring case.")
                 }
-                
-                Text(attributtedText)
-                    .font(
-                        .system(size: 14)
-                    )
-            }
-            
-            Spacer()
-                .frame(height: 32)
 
-            Section(
-                header: Text("Source Conditions")
-                    .font(.headline)
-            ) {
-                Text("Optional. Use this to route links clicked from a specific app or Slack workspace.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-
-                LabeledContent("Source application:") {
-                    Button(action: {
-                        sourceAppPresented.toggle()
-                    }) {
-                        Text("Choose source app")
+                Section {
+                    LabeledContent("Clicked in") {
+                        HStack {
+                            Text(sourceApp?.appDisplayName ?? "Any app")
+                                .foregroundStyle(.secondary)
+                            if sourceApp != nil {
+                                Button("Clear") {
+                                    sourceApp = nil
+                                }
+                            }
+                            Button("Choose…") {
+                                sourceAppPresented.toggle()
+                            }
+                        }
                     }
                     .fileImporter(
                         isPresented: $sourceAppPresented,
@@ -275,138 +254,77 @@ struct RuleForm: View {
                         }
                     }
 
-                    if let sourceAppURL = sourceApp {
-                        Text(sourceAppURL.appDisplayName)
-                            .padding(.horizontal, 5)
-                            .font(.callout)
-                            .foregroundStyle(.secondary)
-
-                        Button(action: {
-                            sourceApp = nil
-                        }) {
-                            Text("Clear")
-                        }
-                    } else {
-                        Text("Any app")
-                            .padding(.horizontal, 5)
-                            .font(.callout)
-                            .foregroundStyle(.secondary)
-                    }
-                }
-
-                LabeledContent("Source window title regex:") {
-                    TextField("Example: Acme", text: $sourceWindowTitleRegex)
-                        .font(.system(size: 14))
+                    TextField("Window title", text: $sourceWindowTitleRegex, prompt: Text("Optional, like Acme"))
 
                     if !sourceWindowTitleRegexIsValid {
-                        Text("Invalid regex")
+                        Text("This isn't a valid regular expression.")
                             .font(.caption)
                             .foregroundStyle(.red)
                     }
+                } header: {
+                    Text("Only links from")
+                } footer: {
+                    Text("Optional. Match links clicked in one app, or only in its windows whose title matches, to tell Slack workspaces apart. Window titles need Accessibility access.")
                 }
-            }
 
-            Spacer()
-                .frame(height: 32)
-            
-            if !targetOptions.isEmpty {
-                LabeledContent("Open in:") {
-                    Picker("", selection: targetSelectionBinding) {
-                        Text("Choose browser or profile").tag(nil as String?)
-                        ForEach(targetOptions) { option in
-                            Text(option.displayName).tag(option.id as String?)
+                Section("Open in") {
+                    if !targetOptions.isEmpty {
+                        Picker("Browser", selection: targetSelectionBinding) {
+                            Text("Choose…").tag(nil as String?)
+                            ForEach(targetOptions) { option in
+                                Text(option.displayName).tag(option.id as String?)
+                            }
                         }
                     }
-                    .frame(width: 260)
-                }
-            }
-             
-            LabeledContent("Application:") {
-                Button(action: {
-                    openWithPresented.toggle()
-                }) {
-                    Text("Choose custom app")
-                }
-                .fileImporter(
-                    isPresented: $openWithPresented,
-                    allowedContentTypes: [.application]
-                ) {
-                    if case .success(let url) = $0 {
-                        self.url = url
-                        self.profileDirectory = nil
-                    }
-                }
-                
-                if let bundle = url.map({ Bundle(url: $0)! }) {
-                    Text("\(bundle.infoDictionary!["CFBundleName"] as! String)")
-                        .padding(.horizontal, 5)
-                        .font(.callout)
-                        .foregroundStyle(.secondary)
-                }
-            }
 
-            if let bundle = url.flatMap({ Bundle(url: $0) }),
-               let bundleID = bundle.bundleIdentifier,
-               ChromiumProfileUtil.source(for: bundleID) != nil,
-               !selectedAppProfiles.isEmpty {
-                LabeledContent("Profile:") {
-                    Picker("", selection: profileDirectoryBinding) {
-                        Text("None").tag(nil as String?)
-                        ForEach(selectedAppProfiles, id: \.selectionID) { profile in
-                            Text(profile.displayName).tag(profile.selectionID as String?)
+                    LabeledContent("Another app") {
+                        HStack {
+                            if let url, selectedTargetOption == nil {
+                                Text(url.appDisplayName)
+                                    .foregroundStyle(.secondary)
+                            }
+                            Button("Choose…") {
+                                openWithPresented.toggle()
+                            }
                         }
                     }
-                    .frame(width: 200)
-                }
-            }
-
-            Spacer()
-                .frame(height: 32)
-            
-            HStack {
-                Button(role: .cancel, action: onCancel) {
-                    Text("Cancel")
-                }
-                
-                if rule != nil {
-                    Button(role: .destructive, action: onDelete) {
-                        Text("Delete")
-                    }
-                }
-                
-                Spacer()
-                
-                Button(action: {
-                    guard let url else {
-                        return
+                    .fileImporter(
+                        isPresented: $openWithPresented,
+                        allowedContentTypes: [.application]
+                    ) {
+                        if case .success(let url) = $0 {
+                            self.url = url
+                            self.profileDirectory = nil
+                        }
                     }
 
-                    let bundleID = Bundle(url: url)?.bundleIdentifier
-                    onSave(
-                        Rule(
-                            regex: regex,
-                            app: url,
-                            profileDirectory: selectedAppProfiles.isEmpty
-                                ? nil
-                                : normalizedProfileDirectory(profileDirectory, bundleID: bundleID ?? ""),
-                            sourceApp: sourceApp,
-                            sourceWindowTitleRegex: trimmedSourceWindowTitleRegex.isEmpty
-                                ? nil
-                                : trimmedSourceWindowTitleRegex
-                        )
-                    )
-                }) {
-                    Text("Save")
+                    if showsProfilePicker {
+                        Picker("Profile", selection: profileDirectoryBinding) {
+                            Text("None").tag(nil as String?)
+                            ForEach(selectedAppProfiles, id: \.selectionID) { profile in
+                                Text(profile.displayName).tag(profile.selectionID as String?)
+                            }
+                        }
+                    }
                 }
-                .disabled(compiledRegex == nil || url == nil || !sourceWindowTitleRegexIsValid)
             }
-            .frame(maxWidth: .infinity, alignment: .trailing)
+            .formStyle(.grouped)
+
+            Divider()
+
+            SettingsSheetFooter(
+                saveTitle: rule == nil ? "Add Rule" : "Save",
+                canSave: compiledRegex != nil && url != nil && sourceWindowTitleRegexIsValid,
+                deleteTitle: "Delete Rule",
+                onDelete: onDelete,
+                onCancel: onCancel,
+                onSave: save
+            )
         }
-        .padding(20)
-        .frame(minWidth: 500)
+        .frame(width: 540, height: 460)
         .onAppear {
-            ChromiumProfileUtil.refreshArcProfilesIfNeeded(&arcProfiles, shortcuts: &shortcuts)
-            regex = rule?.regex ?? ""
+            ChromiumProfileUtil.refreshArcProfilesIfNeeded($arcProfiles, shortcuts: $shortcuts)
+            regex = rule?.regex ?? ".*"
             url = rule?.app
             profileDirectory = rule?.profileDirectory
             sourceApp = rule?.sourceApp

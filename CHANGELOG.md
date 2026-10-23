@@ -2,6 +2,26 @@
 
 Linkyard is a modified version of [Browserino](https://github.com/AlexStrNik/Browserino) by Aleksandr Strizhnev, released under the same GPL-3.0 license. This file lists what Linkyard changed.
 
+## 1.1.0
+
+### Added
+- A choice of picker animations in Settings → Picker: none (the default), Fade, Rise, Zoom and Glow, with a Preview button. Zoom scales the whole window through the private AppKit method Arc and Dia use, and falls back to the system's window animation if that method is gone. Reduce Motion turns every animation into a fade.
+- Search in Settings, covering every setting plus your browsers, profiles, rules and apps.
+- Rules can be reordered by dragging one onto another; the first rule that matches still wins.
+
+### Changed
+- Settings is redesigned: a sidebar of panes with grouped sections and help text, a Picker pane for how the picker opens, and the browser search folders moved into Browsers. Resetting all settings now asks first, exported settings are saved as `linkyard-settings.json`, and the menu bar item reads Settings… instead of Preferences.
+- The picker opens faster: it no longer fades in unless you choose an animation, its view is built once at launch and reused, and browser icons are rendered once instead of on every draw.
+- Links open in Dia faster, and opening them no longer loads the AppleScript runtime (about 13 MB of memory): Linkyard sends Dia fewer Apple Events, built directly instead of through AppleScript. Arc still uses AppleScript.
+- Closing Settings releases its views and memory.
+- The picker closes as soon as you choose a browser instead of staying up until the browser responds.
+
+### Fixed
+- After "Reset all settings", Linkyard no longer copies your old Browserino settings back in on the next launch.
+- Browser icons in the picker update after a browser updates, instead of keeping the old icon until Linkyard restarts.
+- Pressing Esc while recording a shortcut cancels instead of saving Esc as the shortcut, and Delete removes the shortcut.
+- Linkyard no longer crashes when a link arrives while the pointer is outside every screen, as can happen while displays are being connected or disconnected.
+
 ## 1.0.0
 
 First Linkyard release, based on Browserino 1.1.16 plus the open [Chrome profile pull request #48](https://github.com/AlexStrNik/Browserino/pull/48) by Moti Levy.
