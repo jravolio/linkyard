@@ -14,6 +14,7 @@ enum SettingsItemID {
     }
     static func rule(_ index: Int) -> String { "rule.\(index)" }
     static func app(_ index: Int) -> String { "app.\(index)" }
+    static func automation(_ source: ChromiumProfileSource) -> String { "permissions.automation.\(source.bundleID)" }
 }
 
 struct SettingsSearchItem: Identifiable, Equatable {
@@ -48,6 +49,7 @@ enum SettingsSearch {
         SettingsSearchItem(id: "browsers.locations", pane: .browsers, title: "Where to look for browsers", keywords: ["folder", "directory", "applications", "locations"]),
         SettingsSearchItem(id: "rules.add", pane: .rules, title: "Add a rule", keywords: ["route", "automatic", "pattern", "regex", "source app", "window title"]),
         SettingsSearchItem(id: "apps.add", pane: .apps, title: "Add an app", keywords: ["open in app", "website", "domain", "scheme"]),
+        SettingsSearchItem(id: "permissions.accessibility", pane: .permissions, title: "Accessibility", keywords: ["permission", "privacy", "allow", "window title", "slack"]),
         SettingsSearchItem(id: "about.version", pane: .about, title: "Version", keywords: ["about", "credits", "github", "browserino", "license"]),
     ]
 
@@ -61,6 +63,16 @@ enum SettingsSearch {
 
         for browser in browsers where Bundle(url: browser)?.bundleIdentifier != nil {
             items.append(SettingsSearchItem(id: SettingsItemID.browser(browser), pane: .browsers, title: browser.appDisplayName, detail: "Browser"))
+        }
+
+        for (app, source) in ChromiumProfileUtil.appleEventsBrowsers(in: browsers) {
+            items.append(SettingsSearchItem(
+                id: SettingsItemID.automation(source),
+                pane: .permissions,
+                title: "Control \(app.appDisplayName)",
+                detail: "Permissions",
+                keywords: ["permission", "privacy", "allow", "automation", "apple events"]
+            ))
         }
 
         for (source, sourceProfiles) in profiles {

@@ -18,7 +18,7 @@ extension NSTableView {
 }
 
 enum SettingsPane: String, CaseIterable, Identifiable {
-    case general, picker, browsers, profiles, rules, apps, about
+    case general, picker, browsers, profiles, rules, apps, permissions, about
 
     var id: Self { self }
 
@@ -30,6 +30,7 @@ enum SettingsPane: String, CaseIterable, Identifiable {
         case .profiles: "Profiles"
         case .rules: "Rules"
         case .apps: "Apps"
+        case .permissions: "Permissions"
         case .about: "About"
         }
     }
@@ -42,6 +43,7 @@ enum SettingsPane: String, CaseIterable, Identifiable {
         case .profiles: "person.2.fill"
         case .rules: "arrow.triangle.branch"
         case .apps: "square.grid.2x2.fill"
+        case .permissions: "hand.raised.fill"
         case .about: "info"
         }
     }
@@ -49,7 +51,7 @@ enum SettingsPane: String, CaseIterable, Identifiable {
     var tint: Color {
         switch self {
         case .general, .about: .gray
-        case .picker: .blue
+        case .picker, .permissions: .blue
         case .browsers: .teal
         case .profiles: .purple
         case .rules: .orange
@@ -66,6 +68,7 @@ enum SettingsPane: String, CaseIterable, Identifiable {
         case .profiles: ProfilesTab()
         case .rules: RulesTab()
         case .apps: AppsTab()
+        case .permissions: PermissionsTab()
         case .about: AboutTab()
         }
     }
@@ -79,24 +82,29 @@ struct PreferencesView: View {
     var body: some View {
         NavigationSplitView {
             SettingsSidebar(selection: $selection, query: $query) { result in
-                let opened = SettingsHighlight(id: result.id)
-                selection = result.pane
-                highlight = opened
-                // Cleared so revisiting the pane later doesn't scroll and flash the row again.
-                DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
-                    if highlight == opened {
-                        highlight = nil
-                    }
-                }
+                open(result.pane, item: result.id)
             }
             .settingsSidebarPinned()
             .navigationSplitViewColumnWidth(min: 200, ideal: 215, max: 260)
         } detail: {
             selection.content
                 .environment(\.settingsHighlight, highlight)
+                .environment(\.openSettingsItem, open)
                 .navigationTitle(selection.title)
         }
         .frame(minWidth: 720, minHeight: 480)
+    }
+
+    private func open(_ pane: SettingsPane, item: String) {
+        let opened = SettingsHighlight(id: item)
+        selection = pane
+        highlight = opened
+        // Cleared so revisiting the pane later doesn't scroll and flash the row again.
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+            if highlight == opened {
+                highlight = nil
+            }
+        }
     }
 }
 
@@ -113,14 +121,26 @@ private extension View {
 }
 
 struct SettingsPaneIcon: View {
-    let pane: SettingsPane
+    let symbol: String
+    let tint: Color
+    let size: CGFloat
+
+    init(pane: SettingsPane) {
+        self.init(symbol: pane.symbol, tint: pane.tint)
+    }
+
+    init(symbol: String, tint: Color, size: CGFloat = 20) {
+        self.symbol = symbol
+        self.tint = tint
+        self.size = size
+    }
 
     var body: some View {
-        Image(systemName: pane.symbol)
-            .font(.system(size: 11, weight: .semibold))
+        Image(systemName: symbol)
+            .font(.system(size: size * 0.55, weight: .semibold))
             .foregroundStyle(.white)
-            .frame(width: 20, height: 20)
-            .background(RoundedRectangle(cornerRadius: 5, style: .continuous).fill(pane.tint.gradient))
+            .frame(width: size, height: size)
+            .background(RoundedRectangle(cornerRadius: size / 4, style: .continuous).fill(tint.gradient))
     }
 }
 
@@ -274,11 +294,29 @@ extension EnvironmentValues {
         get { self[SettingsHighlightKey.self] }
         set { self[SettingsHighlightKey.self] = newValue }
     }
+
+    var openSettingsItem: (SettingsPane, String) -> Void {
+        get { self[OpenSettingsItemKey.self] }
+        set { self[OpenSettingsItemKey.self] = newValue }
+    }
+}
+
+private struct OpenSettingsItemKey: EnvironmentKey {
+    static let defaultValue: (SettingsPane, String) -> Void = { _, _ in }
 }
 
 extension View {
     func settingsItem(_ id: String) -> some View {
         modifier(SettingsItemModifier(id: id))
+    }
+
+    /// The picker becomes key on every link; this runs only when the Settings window becomes key again.
+    func onSettingsWindowKey(perform action: @escaping () -> Void) -> some View {
+        onReceive(NotificationCenter.default.publisher(for: NSWindow.didBecomeKeyNotification)) { notification in
+            if !(notification.object is BrowserinoWindow) {
+                action()
+            }
+        }
     }
 }
 

@@ -45,6 +45,8 @@ struct RulesTab: View {
     @AppStorage("zenProfiles") private var zenProfiles: [ChromeProfile] = []
 
     @State private var editor: ListEditor?
+    @State private var accessibilityGranted: Bool?
+    @Environment(\.openSettingsItem) private var openSettingsItem
 
     private var profilesByBundleID: [String: [ChromeProfile]] {
         [
@@ -59,6 +61,20 @@ struct RulesTab: View {
         let profiles = profilesByBundleID
 
         SettingsForm {
+            if accessibilityGranted == false && rules.contains(where: \.readsWindowTitle) {
+                Section {
+                    HStack(alignment: .firstTextBaseline, spacing: 10) {
+                        Image(systemName: "exclamationmark.triangle.fill")
+                            .foregroundStyle(.yellow)
+                        Text("Rules that match a window title need Accessibility access, which is off. Until it's on, those rules are skipped and links open the picker.")
+                        Spacer()
+                        Button("Show Permissions") {
+                            openSettingsItem(.permissions, "permissions.accessibility")
+                        }
+                    }
+                }
+            }
+
             Section {
                 if rules.isEmpty {
                     Text("No rules yet, so every link opens the picker.")
@@ -112,6 +128,9 @@ struct RulesTab: View {
                 Text("Rules are checked from top to bottom, and the first one that matches opens the link without the picker. Drag a rule onto another to change the order. Hold ⌘ when you click a link to skip your rules.")
             }
         }
+        .onAppear(perform: refreshAccessibility)
+        .onChange(of: rules) { _ in refreshAccessibility() }
+        .onSettingsWindowKey(perform: refreshAccessibility)
         .sheet(item: $editor) { editor in
             switch editor {
             case .new:
@@ -130,6 +149,15 @@ struct RulesTab: View {
                     })
                 }
             }
+        }
+    }
+}
+
+private extension RulesTab {
+    /// The first Accessibility check in a process takes tens of ms, so it's skipped when no rule needs it.
+    func refreshAccessibility() {
+        if rules.contains(where: \.readsWindowTitle) {
+            accessibilityGranted = AccessibilityPermission.isGranted
         }
     }
 }
