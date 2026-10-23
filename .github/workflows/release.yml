@@ -12,9 +12,26 @@ jobs:
     runs-on: macos-15
     steps:
       - uses: actions/checkout@v4
+      - name: Import the signing certificate
+        env:
+          P12: ${{ secrets.SIGNING_CERTIFICATE_P12 }}
+          P12_PASSWORD: ${{ secrets.SIGNING_CERTIFICATE_PASSWORD }}
+        run: |
+          [ -n "$P12" ] && [ -n "$P12_PASSWORD" ] || { echo "::error::Set the SIGNING_CERTIFICATE_P12 and SIGNING_CERTIFICATE_PASSWORD secrets (see ARCHITECTURE.md, Updates)"; exit 1; }
+          trap 'rm -f "$RUNNER_TEMP/signing.p12"' EXIT
+          keychain="$RUNNER_TEMP/signing.keychain-db"
+          password=$(openssl rand -hex 16)
+          security create-keychain -p "$password" "$keychain"
+          security set-keychain-settings "$keychain"
+          security unlock-keychain -p "$password" "$keychain"
+          echo "$P12" | base64 --decode > "$RUNNER_TEMP/signing.p12"
+          security import "$RUNNER_TEMP/signing.p12" -k "$keychain" -P "$P12_PASSWORD" -T /usr/bin/codesign
+          security set-key-partition-list -S apple-tool:,apple: -s -k "$password" "$keychain" > /dev/null
+          security list-keychains -d user -s "$keychain" $(security list-keychains -d user | tr -d '"')
       - name: Build Linkyard.app
         id: build
         run: |
+          set -o pipefail
           scripts/build-release.sh | tee build.log
           echo "zip=$(grep -m1 '^dist/' build.log)" >> "$GITHUB_OUTPUT"
           echo "sha256=$(tail -1 build.log | cut -d' ' -f1)" >> "$GITHUB_OUTPUT"

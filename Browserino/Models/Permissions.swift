@@ -9,7 +9,7 @@ import ApplicationServices
 enum AccessibilityPermission {
     private static let promptedKey = "sourceDetectionAccessibilityPrompted"
 
-    /// Releases are ad-hoc signed, so macOS drops the permission each update; the version check runs before the slow AXIsProcessTrusted.
+    /// macOS drops the permission when the code signature changes (ad-hoc builds, and the move to a certificate in 1.3.0); the version check runs before the slow AXIsProcessTrusted.
     static func promptIfNeeded(rules: [Rule]) {
         let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String
         guard shouldPrompt(rules: rules, promptedVersion: UserDefaults.standard.string(forKey: promptedKey), version: version) else {
