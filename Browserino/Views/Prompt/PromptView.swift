@@ -498,16 +498,8 @@ private struct GlowSweepFrame: View, Animatable {
         set { progress = newValue }
     }
 
-    /// The picker panel's corner radius, which AppKit doesn't expose.
-    private static var cornerRadius: CGFloat {
-        if #available(macOS 26.0, *) {
-            return 16
-        }
-        return 10
-    }
-
     var body: some View {
-        let shape = RoundedRectangle(cornerRadius: Self.cornerRadius, style: .continuous)
+        let shape = RoundedRectangle(cornerRadius: BrowserinoWindow.cornerRadius, style: .continuous)
         let beam = AngularGradient(
             colors: [
                 .clear, .clear, .clear,

@@ -60,6 +60,9 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
                 }
             }
         }
+        if pickerAnimation.effect != nil {
+            PickerEffectRenderer.prewarm()
+        }
     }
 
     @objc private func activeApplicationDidChange(_ notification: Notification) {
@@ -293,7 +296,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         if #available(macOS 14.0, *) {
             view.safeAreaRegions = []
         }
-        window.contentView = view
+        window.setPicker(view)
         selectorWindow = window
         promptView = view
         return view

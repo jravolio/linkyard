@@ -35,12 +35,22 @@ struct PickerTab: View {
                 LabeledContent {
                     HStack {
                         Picker("Animation", selection: $animation) {
-                            ForEach(PickerAnimation.allCases) { animation in
+                            ForEach(PickerAnimation.allCases.filter { $0.effect == nil }) { animation in
                                 Text(animation.title).tag(animation)
+                            }
+                            Section("Effects") {
+                                ForEach(PickerAnimation.effects) { animation in
+                                    Text(animation.title).tag(animation)
+                                }
                             }
                         }
                         .labelsHidden()
                         .fixedSize()
+                        .onChange(of: animation) { animation in
+                            if animation.effect != nil {
+                                PickerEffectRenderer.prewarm()
+                            }
+                        }
 
                         Button("Preview", action: previewPicker)
                     }
