@@ -39,7 +39,7 @@ Linkyard is a tiny link router for macOS. Make it your default browser, and ever
 - ⌨️ **Keyboard first**: ↑↓ picks the identity, ←→ the browser, ↵ opens, ⇧↵ opens a private window, ⌥⌘C copies the link, Esc closes. Hold ⌘ while clicking a link to skip your rules.
 - 🎯 **Opens where you look**: at the cursor or in the center of the screen, instantly or with an animation you can preview: Fade, Rise, Zoom, a Dia-style Glow, or one of seven effects, from a burn in reverse to a hologram scan.
 - 🔎 **Searchable Settings**: find any setting, browser, profile, rule or app from the sidebar search.
-- 🔄 **Updates itself**: Linkyard checks GitHub for a new release once a day, shows what changed and installs it when you agree. **Check for Updates…** is in the menu bar.
+- 🔄 **Updates itself**: Linkyard checks GitHub for a new release once a day and shows what changed; install it then, later, or let Linkyard install updates on its own. From 1.3.0 on, permissions you allowed stay allowed. **Check for Updates…** is in the menu bar.
 - 🔁 **Coming from Browserino?** Linkyard imports your Browserino settings the first time it starts.
 
 ## 📸 Screenshots
@@ -124,7 +124,7 @@ No. The first time Linkyard starts, it copies your Browserino browsers, profiles
 <details>
 <summary><b>A rule for my Slack workspace doesn't match.</b></summary>
 
-Window-title rules need Accessibility access, and macOS turns it off each time Linkyard updates because releases aren't signed with a paid Apple Developer ID. Open Settings → Permissions: if Accessibility isn't allowed, click Allow… and switch Linkyard on in System Settings.
+Window-title rules need Accessibility access. Linkyard keeps it across updates from 1.3.0 on, but macOS turns it off for a build of its own, such as one you build yourself or any version before 1.3.0. Open Settings → Permissions: if Accessibility isn't allowed, click Allow… and switch Linkyard on in System Settings.
 </details>
 
 ## 🤝 Contributing
