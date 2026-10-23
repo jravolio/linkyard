@@ -698,6 +698,38 @@ final class AppIconRefreshTests: XCTestCase {
     }
 }
 
+/// Sparkle keeps its own state in the app's defaults, next to the settings.
+final class SettingsBackupTests: XCTestCase {
+    private let suite = "linkyard-tests-\(UUID().uuidString)"
+
+    override func tearDown() {
+        UserDefaults().removePersistentDomain(forName: suite)
+    }
+
+    func testAnExportLeavesOutTheUpdaterStateAndIsValidJSON() throws {
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
+        defaults.set("[]", forKey: "rules")
+        defaults.set(Date(), forKey: "SULastCheckTime")
+        defaults.set(false, forKey: "SUEnableAutomaticChecks")
+
+        let settings = GeneralTab.exportedSettings(from: defaults)
+        XCTAssertEqual(settings["rules"] as? String, "[]")
+        XCTAssertNil(settings["SULastCheckTime"])
+        XCTAssertNil(settings["SUEnableAutomaticChecks"])
+        XCTAssertTrue(JSONSerialization.isValidJSONObject(settings))
+    }
+
+    func testAResetKeepsTheUpdateChoice() throws {
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
+        defaults.set("[]", forKey: "rules")
+        defaults.set(false, forKey: "SUEnableAutomaticChecks")
+
+        GeneralTab.resetSettings(in: defaults)
+        XCTAssertNil(defaults.object(forKey: "rules"))
+        XCTAssertEqual(defaults.object(forKey: "SUEnableAutomaticChecks") as? Bool, false)
+    }
+}
+
 final class BrowserinoImportTests: XCTestCase {
     private let suite = "linkyard-tests-\(UUID().uuidString)"
     private var browserinoName: String { suite + ".browserino" }

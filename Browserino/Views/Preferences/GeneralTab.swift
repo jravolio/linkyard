@@ -50,11 +50,14 @@ struct GeneralTab: View {
         return Bundle(url: browserUrl)?.bundleIdentifier
     }
     
-    func exportSettings() {
-        let defaults = UserDefaults.standard
-        let dictionary = defaults.dictionaryRepresentation()
-        
-        let filteredSettings = dictionary.filter { key, _ in
+    /// Sparkle keeps its state (`SU…` keys, such as the last check's date) in the same defaults. It's neither backed up nor reset.
+    static func isUpdaterKey(_ key: String) -> Bool {
+        key.hasPrefix("SU")
+    }
+
+    static func exportedSettings(from defaults: UserDefaults = .standard) -> [String: Any] {
+        defaults.dictionaryRepresentation().filter { key, _ in
+            !isUpdaterKey(key) &&
             !key.contains("NS") &&
             !key.contains("com.apple.") &&
             !key.contains("Apple") &&
@@ -68,13 +71,10 @@ struct GeneralTab: View {
             key != "WebAutomaticSpellingCorrectionEnabled" &&
             key != "Country"
         }
-        
-        var appSettings: [String: Any] = [:]
-        for (key, value) in filteredSettings {
-            appSettings[key] = value
-        }
-        
-        exportDocument = SettingsDocument(settings: appSettings)
+    }
+
+    func exportSettings() {
+        exportDocument = SettingsDocument(settings: Self.exportedSettings())
         showingExportPicker = true
     }
     
@@ -98,7 +98,7 @@ struct GeneralTab: View {
     }
 
     static func resetSettings(in defaults: UserDefaults = .standard) {
-        for key in defaults.dictionaryRepresentation().keys {
+        for key in defaults.dictionaryRepresentation().keys where !isUpdaterKey(key) {
             defaults.removeObject(forKey: key)
         }
         defaults.set(true, forKey: BrowserinoImport.doneKey)
