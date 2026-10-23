@@ -90,7 +90,12 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     }
 
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows: Bool) -> Bool {
-        self.openPreferences()
+        // While an update waits, the Dock icon is there for it.
+        if updates.updater.sessionInProgress {
+            updates.controller.checkForUpdates(nil)
+        } else {
+            self.openPreferences()
+        }
         return true
     }
     
@@ -104,9 +109,6 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
                 let preferences = NSMenuItem(title: "Settings…", action: #selector(openPreferences), keyEquivalent: "")
                 let checkForUpdates = NSMenuItem(title: "Check for Updates…", action: #selector(SPUStandardUpdaterController.checkForUpdates(_:)), keyEquivalent: "")
                 checkForUpdates.target = updates.controller
-                updates.onUnseenUpdate = { version in
-                    checkForUpdates.title = version.map { "Update to \($0)…" } ?? "Check for Updates…"
-                }
                 let quit = NSMenuItem(title: "Quit", action: #selector(quitApp), keyEquivalent: "")
                 
                 statusMenu = NSMenu()
