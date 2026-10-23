@@ -541,6 +541,20 @@ final class AppleEventsBrowserTests: XCTestCase {
     }
 }
 
+/// Sparkle offers an update only when CFBundleVersion grows, and installs only downloads signed with SUPublicEDKey.
+final class UpdateConfigurationTests: XCTestCase {
+    private let info = Bundle.main.infoDictionary ?? [:]
+
+    func testTheBuildNumberFollowsTheVersion() {
+        XCTAssertEqual(info["CFBundleVersion"] as? String, info["CFBundleShortVersionString"] as? String)
+    }
+
+    func testUpdatesComeFromTheLatestGitHubReleaseAndMustBeSigned() {
+        XCTAssertEqual(info["SUFeedURL"] as? String, "https://github.com/jravolio/linkyard/releases/latest/download/appcast.xml")
+        XCTAssertEqual(Data(base64Encoded: info["SUPublicEDKey"] as? String ?? "")?.count, 32)
+    }
+}
+
 final class ReorderTests: XCTestCase {
     func testDroppingOnARowBelowPutsTheDraggedRowAfterIt() {
         var rules = ["a", "b", "c", "d"]
@@ -681,6 +695,38 @@ final class AppIconRefreshTests: XCTestCase {
         let after = AppIconCache.icon(forApp: app.path, size: 32, scale: 2, colorScheme: .light)
 
         XCTAssertNotEqual(before.tiffRepresentation, after.tiffRepresentation)
+    }
+}
+
+/// Sparkle keeps its own state in the app's defaults, next to the settings.
+final class SettingsBackupTests: XCTestCase {
+    private let suite = "linkyard-tests-\(UUID().uuidString)"
+
+    override func tearDown() {
+        UserDefaults().removePersistentDomain(forName: suite)
+    }
+
+    func testAnExportLeavesOutTheUpdaterStateAndIsValidJSON() throws {
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
+        defaults.set("[]", forKey: "rules")
+        defaults.set(Date(), forKey: "SULastCheckTime")
+        defaults.set(false, forKey: "SUEnableAutomaticChecks")
+
+        let settings = GeneralTab.exportedSettings(from: defaults)
+        XCTAssertEqual(settings["rules"] as? String, "[]")
+        XCTAssertNil(settings["SULastCheckTime"])
+        XCTAssertNil(settings["SUEnableAutomaticChecks"])
+        XCTAssertTrue(JSONSerialization.isValidJSONObject(settings))
+    }
+
+    func testAResetKeepsTheUpdateChoice() throws {
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
+        defaults.set("[]", forKey: "rules")
+        defaults.set(false, forKey: "SUEnableAutomaticChecks")
+
+        GeneralTab.resetSettings(in: defaults)
+        XCTAssertNil(defaults.object(forKey: "rules"))
+        XCTAssertEqual(defaults.object(forKey: "SUEnableAutomaticChecks") as? Bool, false)
     }
 }
 

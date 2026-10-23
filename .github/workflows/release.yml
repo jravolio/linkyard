@@ -18,10 +18,30 @@ jobs:
           scripts/build-release.sh | tee build.log
           echo "zip=$(grep -m1 '^dist/' build.log)" >> "$GITHUB_OUTPUT"
           echo "sha256=$(tail -1 build.log | cut -d' ' -f1)" >> "$GITHUB_OUTPUT"
+      # Installed copies look for appcast.xml on the latest release, so a release without it would stop updates.
+      - name: Sign the update feed
+        env:
+          SPARKLE_KEY: ${{ secrets.SPARKLE_ED_PRIVATE_KEY }}
+        run: |
+          [ -n "$SPARKLE_KEY" ] || { echo "::error::Set the SPARKLE_ED_PRIVATE_KEY secret (see ARCHITECTURE.md, Updates)"; exit 1; }
+          zip="${{ steps.build.outputs.zip }}"
+          version="${GITHUB_REF_NAME#v}"
+          [ "$zip" = "dist/Linkyard-$version.zip" ] || { echo "::error::The tag is $GITHUB_REF_NAME, but MARKETING_VERSION built $zip"; exit 1; }
+          notes="appcast/$(basename "$zip" .zip).md"
+          mkdir -p appcast
+          cp "$zip" appcast/
+          awk -v v="$version" '$1 == "##" && $2 == v {f=1; next} /^## /{f=0} f' CHANGELOG.md > "$notes"
+          [ -s "$notes" ] || { echo "::error::CHANGELOG.md has no section for $version"; exit 1; }
+          generate_appcast=build/release/SourcePackages/artifacts/sparkle/Sparkle/bin/generate_appcast
+          echo "$SPARKLE_KEY" | "$generate_appcast" \
+            --ed-key-file - --embed-release-notes \
+            --download-url-prefix "https://github.com/${{ github.repository }}/releases/download/$GITHUB_REF_NAME/" appcast/
+          # With a key that doesn't match SUPublicEDKey, generate_appcast only warns and writes the update unsigned.
+          grep -q 'sparkle:edSignature=' appcast/appcast.xml || { echo "::error::SPARKLE_ED_PRIVATE_KEY doesn't match SUPublicEDKey in Info.plist"; exit 1; }
       - name: Publish the release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create "$GITHUB_REF_NAME" "${{ steps.build.outputs.zip }}" \
+          gh release create "$GITHUB_REF_NAME" "${{ steps.build.outputs.zip }}" appcast/appcast.xml \
             --title "Linkyard ${GITHUB_REF_NAME#v}" --generate-notes \
             --notes "SHA-256: \`${{ steps.build.outputs.sha256 }}\`"

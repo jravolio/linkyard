@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		5A1E00000000000000000001 /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = 5A1E00000000000000000002 /* Sparkle */; };
 		2FE87E36256ED8F5587A8656 /* LinkyardTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE4A2DA3F144B5F30C40039A /* LinkyardTests.swift */; };
 		AA00010B2F0C700100FC6D37 /* ChromeProfile.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA00010A2F0C700100FC6D37 /* ChromeProfile.swift */; };
 		AA00010D2F0C700100FC6D37 /* ProfilesTab.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA00010C2F0C700100FC6D37 /* ProfilesTab.swift */; };
@@ -33,6 +34,8 @@
 		986DC8092CFE42EB00447DC7 /* Rule.swift in Sources */ = {isa = PBXBuildFile; fileRef = 986DC8082CFE42EA00447DC7 /* Rule.swift */; };
 		A1E7EA012F00000000000031 /* BrowserinoImport.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1E7EA012F00000000000032 /* BrowserinoImport.swift */; };
 		A1E7EA012F00000000000061 /* Permissions.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1E7EA012F00000000000062 /* Permissions.swift */; };
+		A1E7EA012F00000000000071 /* Updates.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1E7EA012F00000000000072 /* Updates.swift */; };
+		A1E7EA012F00000000000073 /* UpdatesSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1E7EA012F00000000000074 /* UpdatesSection.swift */; };
 		A1E7EA012F00000000000063 /* PermissionsTab.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1E7EA012F00000000000064 /* PermissionsTab.swift */; };
 		A1E7EA012F00000000000001 /* AppleEvents.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1E7EA012F00000000000002 /* AppleEvents.swift */; };
 		986DC80C2CFE447600447DC7 /* EditRuleForm.swift in Sources */ = {isa = PBXBuildFile; fileRef = 986DC80B2CFE447200447DC7 /* EditRuleForm.swift */; };
@@ -90,6 +93,8 @@
 		986DC8082CFE42EA00447DC7 /* Rule.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Rule.swift; sourceTree = "<group>"; };
 		A1E7EA012F00000000000032 /* BrowserinoImport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BrowserinoImport.swift; sourceTree = "<group>"; };
 		A1E7EA012F00000000000062 /* Permissions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Permissions.swift; sourceTree = "<group>"; };
+		A1E7EA012F00000000000072 /* Updates.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Updates.swift; sourceTree = "<group>"; };
+		A1E7EA012F00000000000074 /* UpdatesSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UpdatesSection.swift; sourceTree = "<group>"; };
 		A1E7EA012F00000000000064 /* PermissionsTab.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PermissionsTab.swift; sourceTree = "<group>"; };
 		A1E7EA012F00000000000002 /* AppleEvents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppleEvents.swift; sourceTree = "<group>"; };
 		986DC80B2CFE447200447DC7 /* EditRuleForm.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditRuleForm.swift; sourceTree = "<group>"; };
@@ -118,6 +123,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				5A1E00000000000000000001 /* Sparkle in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -215,6 +221,7 @@
 				986DC8082CFE42EA00447DC7 /* Rule.swift */,
 				A1E7EA012F00000000000032 /* BrowserinoImport.swift */,
 				A1E7EA012F00000000000062 /* Permissions.swift */,
+				A1E7EA012F00000000000072 /* Updates.swift */,
 				A1E7EA012F00000000000002 /* AppleEvents.swift */,
 				664FDF212CE4AA6B009766AA /* BrowserUtil.swift */,
 			);
@@ -242,6 +249,7 @@
 				9830F0BA2C11DE8F00D69C88 /* PreferencesView.swift */,
 				A1E7EA012F00000000000014 /* PickerTab.swift */,
 				A1E7EA012F00000000000064 /* PermissionsTab.swift */,
+				A1E7EA012F00000000000074 /* UpdatesSection.swift */,
 				A1E7EA012F00000000000012 /* SettingsSearch.swift */,
 				989B17FC2C17400A0039441B /* EditAppForm.swift */,
 				989B17F22C16FC550039441B /* BrowsersTab.swift */,
@@ -288,6 +296,9 @@
 			dependencies = (
 			);
 			name = Browserino;
+			packageProductDependencies = (
+				5A1E00000000000000000002 /* Sparkle */,
+			);
 			productName = Browserino;
 			productReference = 9830F0A22C119A3000D69C88 /* Browserino.app */;
 			productType = "com.apple.product-type.application";
@@ -320,6 +331,9 @@
 				Base,
 			);
 			mainGroup = 9830F0992C119A3000D69C88;
+			packageReferences = (
+				5A1E00000000000000000003 /* XCRemoteSwiftPackageReference "Sparkle" */,
+			);
 			productRefGroup = 9830F0A32C119A3000D69C88 /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
@@ -383,6 +397,8 @@
 				A1E7EA012F00000000000031 /* BrowserinoImport.swift in Sources */,
 				A1E7EA012F00000000000061 /* Permissions.swift in Sources */,
 				A1E7EA012F00000000000063 /* PermissionsTab.swift in Sources */,
+				A1E7EA012F00000000000071 /* Updates.swift in Sources */,
+				A1E7EA012F00000000000073 /* UpdatesSection.swift in Sources */,
 				A1E7EA012F00000000000001 /* AppleEvents.swift in Sources */,
 				989B17F72C16FD260039441B /* GeneralTab.swift in Sources */,
 				986DC8072CFE42E300447DC7 /* RulesTab.swift in Sources */,
@@ -419,7 +435,7 @@
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_IDENTITY = "-";
 				CODE_SIGN_STYLE = Manual;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = "$(MARKETING_VERSION)";
 				GENERATE_INFOPLIST_FILE = YES;
 				MACOSX_DEPLOYMENT_TARGET = 13.0;
 				MARKETING_VERSION = 1.2.1;
@@ -437,7 +453,7 @@
 				BUNDLE_LOADER = "$(TEST_HOST)";
 				CODE_SIGN_IDENTITY = "-";
 				CODE_SIGN_STYLE = Manual;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = "$(MARKETING_VERSION)";
 				GENERATE_INFOPLIST_FILE = YES;
 				MACOSX_DEPLOYMENT_TARGET = 13.0;
 				MARKETING_VERSION = 1.2.1;
@@ -578,7 +594,7 @@
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Don't Code Sign";
 				CODE_SIGN_STYLE = Manual;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = "$(MARKETING_VERSION)";
 				DEVELOPMENT_ASSET_PATHS = "\"Browserino/Preview Content\"";
 				DEVELOPMENT_TEAM = N37A28CLCC;
 				"DEVELOPMENT_TEAM[sdk=macosx*]" = "";
@@ -615,7 +631,7 @@
 				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Don't Code Sign";
 				CODE_SIGN_STYLE = Manual;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = "$(MARKETING_VERSION)";
 				DEVELOPMENT_ASSET_PATHS = "\"Browserino/Preview Content\"";
 				DEVELOPMENT_TEAM = N37A28CLCC;
 				"DEVELOPMENT_TEAM[sdk=macosx*]" = "";
@@ -672,6 +688,25 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		5A1E00000000000000000003 /* XCRemoteSwiftPackageReference "Sparkle" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/sparkle-project/Sparkle";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.10.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		5A1E00000000000000000002 /* Sparkle */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 5A1E00000000000000000003 /* XCRemoteSwiftPackageReference "Sparkle" */;
+			productName = Sparkle;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 9830F09A2C119A3000D69C88 /* Project object */;
 }

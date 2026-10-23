@@ -30,6 +30,7 @@ enum SettingsSearch {
         SettingsSearchItem(id: "general.defaultBrowser", pane: .general, title: "Default browser", keywords: ["make default"]),
         SettingsSearchItem(id: "general.launchAtLogin", pane: .general, title: "Open at login", keywords: ["launch", "startup", "start"]),
         SettingsSearchItem(id: "general.menuBar", pane: .general, title: "Show in menu bar", keywords: ["icon", "status bar"]),
+        SettingsSearchItem(id: "general.updates", pane: .general, title: "Check for updates", keywords: ["update", "upgrade", "new version", "sparkle", "release"]),
         SettingsSearchItem(id: "general.backup", pane: .general, title: "Export or import settings", keywords: ["backup", "restore", "file", "json"]),
         SettingsSearchItem(id: "general.reset", pane: .general, title: "Reset all settings", keywords: ["clear", "erase", "delete"]),
         SettingsSearchItem(id: "picker.position", pane: .picker, title: "Where the picker opens", keywords: ["position", "pointer", "cursor", "center", "screen"]),

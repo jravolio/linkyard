@@ -8,6 +8,7 @@
 import SwiftUI
 import Foundation
 import ApplicationServices
+import Sparkle
 
 class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     private var selectorWindow: BrowserinoWindow?
@@ -25,6 +26,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     @AppStorage("shortcuts") private var shortcuts: [String: String] = [:]
     
     var statusMenu: NSMenu!
+    let updates = Updates()
     var statusBarItem: NSStatusItem!
     
     func applicationDidFinishLaunching(_ aNotification: Notification) {
@@ -63,6 +65,10 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         if pickerAnimation.effect != nil {
             PickerEffectRenderer.prewarm()
         }
+        // After launch work, so a link that launched the app reaches the picker first.
+        DispatchQueue.main.async {
+            self.updates.controller.startUpdater()
+        }
     }
 
     @objc private func activeApplicationDidChange(_ notification: Notification) {
@@ -84,7 +90,12 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     }
 
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows: Bool) -> Bool {
-        self.openPreferences()
+        // The Dock icon is there for an update on screen; a check running in the background has nothing to show.
+        if updates.isShowingUpdate {
+            updates.controller.checkForUpdates(nil)
+        } else {
+            self.openPreferences()
+        }
         return true
     }
     
@@ -96,11 +107,14 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
                 statusButton!.image = NSImage.menuIcon
                 
                 let preferences = NSMenuItem(title: "Settings…", action: #selector(openPreferences), keyEquivalent: "")
+                let checkForUpdates = NSMenuItem(title: "Check for Updates…", action: #selector(SPUStandardUpdaterController.checkForUpdates(_:)), keyEquivalent: "")
+                checkForUpdates.target = updates.controller
                 let quit = NSMenuItem(title: "Quit", action: #selector(quitApp), keyEquivalent: "")
                 
                 statusMenu = NSMenu()
                 
                 statusMenu!.addItem(preferences)
+                statusMenu!.addItem(checkForUpdates)
                 statusMenu!.addItem(.separator())
                 statusMenu!.addItem(quit)
                 
@@ -117,7 +131,10 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     override func observeValue(forKeyPath keyPath: String?, of object: Any?, change: [NSKeyValueChangeKey : Any]?, context: UnsafeMutableRawPointer?) {
         if keyPath == "showInMenuBar" {
             setupStatusBar()
-            NSApp.setActivationPolicy(.accessory)
+            // An update on screen keeps its Dock icon.
+            if !updates.isShowingUpdate {
+                NSApp.setActivationPolicy(.accessory)
+            }
         }
     }
     
@@ -174,7 +191,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         
         preferencesWindow!.center()
         preferencesWindow!.title = "Settings"
-        let settingsView = NSHostingView(rootView: PreferencesView().environment(\.previewPicker) { [weak self] in
+        let settingsView = NSHostingView(rootView: PreferencesView().environment(\.updateSettings, updates.settings).environment(\.previewPicker) { [weak self] in
             self?.previewPicker()
         })
         // The default sizing rewrites the window's min and max size on every pane switch, so the window would jump.
