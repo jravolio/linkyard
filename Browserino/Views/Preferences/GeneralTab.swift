@@ -35,6 +35,7 @@ struct SettingsDocument: FileDocument {
 struct GeneralTab: View {
     @State private var isDefault = false
     @State private var launchAtLogin = SMAppService.mainApp.status == .enabled
+    @Environment(\.updateSettings) private var updateSettings
     @State private var showingExportPicker = false
     @State private var showingImportPicker = false
     @State private var showingResetConfirmation = false
@@ -151,6 +152,10 @@ struct GeneralTab: View {
                     Text("When it's hidden, open Linkyard from Finder to get back to Settings.")
                 }
                 .settingsItem("general.menuBar")
+            }
+
+            if let updateSettings {
+                UpdatesSection(updates: updateSettings)
             }
 
             Section {

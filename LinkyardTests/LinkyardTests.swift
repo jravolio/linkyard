@@ -541,6 +541,20 @@ final class AppleEventsBrowserTests: XCTestCase {
     }
 }
 
+/// Sparkle offers an update only when CFBundleVersion grows, and installs only downloads signed with SUPublicEDKey.
+final class UpdateConfigurationTests: XCTestCase {
+    private let info = Bundle.main.infoDictionary ?? [:]
+
+    func testTheBuildNumberFollowsTheVersion() {
+        XCTAssertEqual(info["CFBundleVersion"] as? String, info["CFBundleShortVersionString"] as? String)
+    }
+
+    func testUpdatesComeFromTheLatestGitHubReleaseAndMustBeSigned() {
+        XCTAssertEqual(info["SUFeedURL"] as? String, "https://github.com/jravolio/linkyard/releases/latest/download/appcast.xml")
+        XCTAssertEqual(Data(base64Encoded: info["SUPublicEDKey"] as? String ?? "")?.count, 32)
+    }
+}
+
 final class ReorderTests: XCTestCase {
     func testDroppingOnARowBelowPutsTheDraggedRowAfterIt() {
         var rules = ["a", "b", "c", "d"]

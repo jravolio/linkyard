@@ -8,6 +8,7 @@
 import SwiftUI
 import Foundation
 import ApplicationServices
+import Sparkle
 
 class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     private var selectorWindow: BrowserinoWindow?
@@ -25,6 +26,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     @AppStorage("shortcuts") private var shortcuts: [String: String] = [:]
     
     var statusMenu: NSMenu!
+    let updates = Updates()
     var statusBarItem: NSStatusItem!
     
     func applicationDidFinishLaunching(_ aNotification: Notification) {
@@ -63,6 +65,10 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         if pickerAnimation.effect != nil {
             PickerEffectRenderer.prewarm()
         }
+        // After launch work, so a link that launched the app reaches the picker first.
+        DispatchQueue.main.async {
+            self.updates.start()
+        }
     }
 
     @objc private func activeApplicationDidChange(_ notification: Notification) {
@@ -96,11 +102,17 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
                 statusButton!.image = NSImage.menuIcon
                 
                 let preferences = NSMenuItem(title: "Settings…", action: #selector(openPreferences), keyEquivalent: "")
+                let checkForUpdates = NSMenuItem(title: "Check for Updates…", action: #selector(SPUStandardUpdaterController.checkForUpdates(_:)), keyEquivalent: "")
+                checkForUpdates.target = updates.controller
+                updates.onUnseenUpdate = { version in
+                    checkForUpdates.title = version.map { "Update to \($0)…" } ?? "Check for Updates…"
+                }
                 let quit = NSMenuItem(title: "Quit", action: #selector(quitApp), keyEquivalent: "")
                 
                 statusMenu = NSMenu()
                 
                 statusMenu!.addItem(preferences)
+                statusMenu!.addItem(checkForUpdates)
                 statusMenu!.addItem(.separator())
                 statusMenu!.addItem(quit)
                 
@@ -174,7 +186,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         
         preferencesWindow!.center()
         preferencesWindow!.title = "Settings"
-        let settingsView = NSHostingView(rootView: PreferencesView().environment(\.previewPicker) { [weak self] in
+        let settingsView = NSHostingView(rootView: PreferencesView().environment(\.updateSettings, updates.settings).environment(\.previewPicker) { [weak self] in
             self?.previewPicker()
         })
         // The default sizing rewrites the window's min and max size on every pane switch, so the window would jump.

@@ -63,6 +63,12 @@
 	<array>
 		<string>NSUserActivityTypeBrowsingWeb</string>
 	</array>
+	<key>SUFeedURL</key>
+	<string>https://github.com/jravolio/linkyard/releases/latest/download/appcast.xml</string>
+	<key>SUPublicEDKey</key>
+	<string>XXZCfJ1wMcwxYsk/HbFVC2TgFeCB6rtpDgye11q5S+k=</string>
+	<key>SUEnableAutomaticChecks</key>
+	<true/>
 	<key>NSAppleEventsUsageDescription</key>
 	<string>Linkyard controls Arc and Dia to open links in the space or profile you pick.</string>
 </dict>

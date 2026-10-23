@@ -4,7 +4,9 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-version=$(xcodebuild -project Browserino.xcodeproj -scheme Browserino -showBuildSettings 2>/dev/null | awk '/ MARKETING_VERSION /{print $3; exit}')
+# netrc: Sparkle is public, and the default Keychain lookup can wait forever on a Keychain prompt.
+version=$(xcodebuild -project Browserino.xcodeproj -scheme Browserino -showBuildSettings -packageAuthorizationProvider netrc 2>/dev/null | awk '/ MARKETING_VERSION /{print $3; exit}')
+[ -n "$version" ] || { echo "Couldn't read MARKETING_VERSION" >&2; exit 1; }
 derived=build/release
 app="$derived/Build/Products/Release/Linkyard.app"
 zip="dist/Linkyard-$version.zip"
@@ -12,10 +14,16 @@ zip="dist/Linkyard-$version.zip"
 rm -rf "$derived" "$zip"
 mkdir -p dist
 xcodebuild -project Browserino.xcodeproj -scheme Browserino -configuration Release \
-  -destination 'generic/platform=macOS' -derivedDataPath "$derived" \
+  -destination 'generic/platform=macOS' -derivedDataPath "$derived" -packageAuthorizationProvider netrc \
   ARCHS="arm64 x86_64" ONLY_ACTIVE_ARCH=NO CODE_SIGN_IDENTITY=- CODE_SIGNING_REQUIRED=NO \
   build | grep -E 'error:|BUILD (SUCCEEDED|FAILED)'
-codesign --force --deep --sign - "$app"
+
+# Sparkle's XPC services are only for sandboxed apps. Nested code is signed inside out instead of with the deprecated --deep.
+sparkle="$app/Contents/Frameworks/Sparkle.framework"
+rm -rf "$sparkle/XPCServices" "$sparkle/Versions/B/XPCServices"
+for code in "$sparkle/Versions/B/Autoupdate" "$sparkle/Versions/B/Updater.app" "$sparkle" "$app"; do
+  codesign --force --sign - "$code"
+done
 ditto -c -k --keepParent "$app" "$zip"
 
 echo "$zip"

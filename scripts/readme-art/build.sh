@@ -3,7 +3,7 @@
 build_harness() {
   local binary=$1
   shift
-  (cd "$root/Browserino" && find . -name '*.swift' ! -name main.swift ! -name BrowserinoApp.swift ! -name BrowserinoApplication.swift) | while read -r file; do
+  (cd "$root/Browserino" && find . -name '*.swift' ! -name main.swift ! -name BrowserinoApp.swift ! -name BrowserinoApplication.swift ! -name Updates.swift) | while read -r file; do
     mkdir -p "$work/src/$(dirname "$file")"
     awk '/^#Preview/{exit} {print}' "$root/Browserino/$file" > "$work/src/$file"
   done
