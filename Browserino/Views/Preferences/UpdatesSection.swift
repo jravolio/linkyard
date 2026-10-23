@@ -41,7 +41,7 @@ struct UpdatesSection: View {
         Section {
             Toggle(isOn: $checksAutomatically) {
                 Text("Check for updates automatically")
-                Text("Linkyard looks for a new release on GitHub once a day and asks before installing it.")
+                Text("Linkyard looks for a new release on GitHub once a day.")
             }
             .onChange(of: checksAutomatically) { settings.setChecksAutomatically($0) }
             .settingsItem("general.updates")
@@ -50,8 +50,6 @@ struct UpdatesSection: View {
                 Button("Check Now", action: settings.checkNow)
                     .disabled(!canCheck)
             }
-        } header: {
-            Text("Updates")
         }
         .onReceive(settings.canCheck) { canCheck = $0 }
     }
