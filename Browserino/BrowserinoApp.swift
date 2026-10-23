@@ -67,7 +67,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         }
         // After launch work, so a link that launched the app reaches the picker first.
         DispatchQueue.main.async {
-            self.updates.start()
+            self.updates.controller.startUpdater()
         }
     }
 
@@ -90,8 +90,8 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     }
 
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows: Bool) -> Bool {
-        // While an update waits, the Dock icon is there for it.
-        if updates.updater.sessionInProgress {
+        // The Dock icon is there for an update on screen; a check running in the background has nothing to show.
+        if updates.isShowingUpdate {
             updates.controller.checkForUpdates(nil)
         } else {
             self.openPreferences()
@@ -131,7 +131,10 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     override func observeValue(forKeyPath keyPath: String?, of object: Any?, change: [NSKeyValueChangeKey : Any]?, context: UnsafeMutableRawPointer?) {
         if keyPath == "showInMenuBar" {
             setupStatusBar()
-            NSApp.setActivationPolicy(.accessory)
+            // An update on screen keeps its Dock icon.
+            if !updates.isShowingUpdate {
+                NSApp.setActivationPolicy(.accessory)
+            }
         }
     }
     

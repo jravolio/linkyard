@@ -13,19 +13,16 @@ import Sparkle
 /// without the notification: https://sparkle-project.org/documentation/gentle-reminders/
 final class Updates: NSObject, SPUStandardUserDriverDelegate {
     private(set) lazy var controller = SPUStandardUpdaterController(startingUpdater: false, updaterDelegate: nil, userDriverDelegate: self)
-
-    var updater: SPUUpdater { controller.updater }
-
-    func start() {
-        controller.startUpdater()
-    }
+    private(set) var isShowingUpdate = false
 
     var settings: UpdateSettings {
-        UpdateSettings(
-            checksAutomatically: { [weak self] in self?.updater.automaticallyChecksForUpdates ?? false },
-            setChecksAutomatically: { [weak self] in self?.updater.automaticallyChecksForUpdates = $0 },
-            canCheck: updater.publisher(for: \.canCheckForUpdates).receive(on: DispatchQueue.main).eraseToAnyPublisher(),
-            checkNow: { [weak self] in self?.controller.checkForUpdates(nil) }
+        let controller = self.controller
+        let updater = controller.updater
+        return UpdateSettings(
+            checksAutomatically: { updater.automaticallyChecksForUpdates },
+            setChecksAutomatically: { updater.automaticallyChecksForUpdates = $0 },
+            canCheck: updater.publisher(for: \.canCheckForUpdates).eraseToAnyPublisher(),
+            checkNow: { controller.checkForUpdates(nil) }
         )
     }
 
@@ -33,6 +30,7 @@ final class Updates: NSObject, SPUStandardUserDriverDelegate {
     var supportsGentleScheduledUpdateReminders: Bool { true }
 
     func standardUserDriverWillHandleShowingUpdate(_ handleShowingUpdate: Bool, forUpdate update: SUAppcastItem, state: SPUUserUpdateState) {
+        isShowingUpdate = true
         // A Dock icon, so the update window can be found again.
         NSApp.setActivationPolicy(.regular)
         if !state.userInitiated {
@@ -45,6 +43,7 @@ final class Updates: NSObject, SPUStandardUserDriverDelegate {
     }
 
     func standardUserDriverWillFinishUpdateSession() {
+        isShowingUpdate = false
         NSApp.setActivationPolicy(.accessory)
     }
 }

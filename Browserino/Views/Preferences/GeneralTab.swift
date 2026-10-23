@@ -155,7 +155,7 @@ struct GeneralTab: View {
             }
 
             if let updateSettings {
-                UpdatesSection(updates: updateSettings)
+                UpdatesSection(settings: updateSettings)
             }
 
             Section {

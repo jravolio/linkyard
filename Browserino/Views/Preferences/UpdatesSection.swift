@@ -6,7 +6,7 @@
 import Combine
 import SwiftUI
 
-/// Settings reach the updater through this, so the views build without Sparkle (README art, previews).
+/// Settings reach the updater through this, so the views build without Sparkle (the README art harness).
 struct UpdateSettings {
     var checksAutomatically: () -> Bool
     var setChecksAutomatically: (Bool) -> Void
@@ -26,15 +26,15 @@ extension EnvironmentValues {
 }
 
 struct UpdatesSection: View {
-    let updates: UpdateSettings
+    let settings: UpdateSettings
 
     @State private var checksAutomatically: Bool
     @State private var canCheck = false
 
     /// Loaded here rather than in onAppear, where onChange would save the loaded value as if it were a choice.
-    init(updates: UpdateSettings) {
-        self.updates = updates
-        _checksAutomatically = State(initialValue: updates.checksAutomatically())
+    init(settings: UpdateSettings) {
+        self.settings = settings
+        _checksAutomatically = State(initialValue: settings.checksAutomatically())
     }
 
     var body: some View {
@@ -43,16 +43,16 @@ struct UpdatesSection: View {
                 Text("Check for updates automatically")
                 Text("Linkyard looks for a new release on GitHub once a day and asks before installing it.")
             }
-            .onChange(of: checksAutomatically) { updates.setChecksAutomatically($0) }
+            .onChange(of: checksAutomatically) { settings.setChecksAutomatically($0) }
             .settingsItem("general.updates")
 
             LabeledContent("Version \(Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "")") {
-                Button("Check Now", action: updates.checkNow)
+                Button("Check Now", action: settings.checkNow)
                     .disabled(!canCheck)
             }
         } header: {
             Text("Updates")
         }
-        .onReceive(updates.canCheck) { canCheck = $0 }
+        .onReceive(settings.canCheck) { canCheck = $0 }
     }
 }
