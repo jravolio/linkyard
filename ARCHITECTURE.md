@@ -28,6 +28,8 @@ Any other browser opens the link with `NSWorkspace`, optionally with its private
 
 The Settings window (`PreferencesView`) is a sidebar of panes (`SettingsPane`) with grouped forms. Search covers both the settings and what the user set up (`SettingsSearch`); opening a result switches pane and scrolls to the row marked with the same `settingsItem` ID.
 
+Rules and browsers reorder by drag (`View.reorderable`): the pane holds the dragged row's index, and the row moves into each row the pointer enters, so the list shows the new order before the drop. The drag carries `io.github.jravolio.Linkyard.settings-row`, declared in Info.plist, so other drags never reorder rows. VoiceOver gets Move Up and Move Down instead.
+
 Everything lives in `UserDefaults` through `@AppStorage`; arrays and dictionaries are stored as JSON strings (`Extensions/Array+RawRepresentable.swift`). Profile logos are copied as 256px PNGs to `~/Library/Application Support/Linkyard/ProfileIcons` and cached in memory (`ProfileImageCache`). Browser icons in the picker are rendered once per size, screen scale and appearance (`AppIconCache`), since Icon Services renders them over XPC on every draw. On first launch Linkyard copies an existing Browserino setup from the `xyz.alexstrnik.Browserino` defaults domain.
 
 ## Updates

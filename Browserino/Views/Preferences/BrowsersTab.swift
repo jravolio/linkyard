@@ -12,6 +12,8 @@ struct BrowsersTab: View {
     @AppStorage("hiddenBrowsers") private var hiddenBrowsers: [URL] = []
     @AppStorage("privateArgs") private var privateArgs: [String: String] = [:]
 
+    @State private var draggedRow: Int?
+
     private func isVisible(_ browser: URL) -> Binding<Bool> {
         Binding(
             get: { !hiddenBrowsers.contains(browser) },
@@ -58,7 +60,7 @@ struct BrowsersTab: View {
                                 .toggleStyle(.switch)
                                 .controlSize(.small)
                         }
-                        .reorderable(at: index, count: shown.count) { moveShown(shown, from: $0, to: $1) }
+                        .reorderable(at: index, count: shown.count, draggedRow: $draggedRow) { moveShown(shown, from: $0, to: $1) }
                         .settingsItem(SettingsItemID.browser(browser))
                     }
                 }
@@ -73,7 +75,7 @@ struct BrowsersTab: View {
                     .settingsItem("browsers.rescan")
                 }
             } footer: {
-                Text("The picker shows browsers in this order; drag a browser onto another to move it there. Switch a browser off to hide it from the picker.")
+                Text("The picker shows browsers in this order; drag a browser by its handle to move it. Switch a browser off to hide it from the picker.")
             }
 
             Section {
