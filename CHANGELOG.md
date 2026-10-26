@@ -2,7 +2,7 @@
 
 Linkyard is a modified version of [Browserino](https://github.com/AlexStrNik/Browserino) by Aleksandr Strizhnev, released under the same GPL-3.0 license. This file lists what Linkyard changed.
 
-## Unreleased
+## 1.3.1 - 2026-10-26
 
 ### Changed
 - Rules and browsers in Settings have a drag handle, and while you drag one the list reorders under the pointer, so you see the new order before you let go.
