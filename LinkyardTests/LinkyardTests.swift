@@ -575,6 +575,51 @@ final class ReorderTests: XCTestCase {
         rules.move(from: 1, to: 0)
         XCTAssertEqual(rules, ["a", "b"])
     }
+
+    func testAMovedRowLandsOnTheRowItEntered() {
+        let original = ["a", "b", "c", "d"]
+        for from in original.indices {
+            for to in original.indices where to != from {
+                var rules = original
+                rules.move(from: from, to: to)
+                XCTAssertEqual(rules[to], original[from], "from \(from) to \(to)")
+            }
+        }
+    }
+
+    func testRowsOfDifferentHeightsDoNotSwapBackAndForthUnderThePointer() {
+        let heights: [String: CGFloat] = ["a": 44, "b": 58, "c": 44]
+        var rules = ["a", "b", "c"]
+        var dragged = 0
+        var moves = 0
+        // SwiftUI sends a drop update on every pointer move, so each position is checked twice, as a still pointer would be.
+        for y in stride(from: CGFloat(1), to: 146, by: 1) {
+            for _ in 0..<2 {
+                var top: CGFloat = 0
+                guard let row = rules.indices.first(where: { top += heights[rules[$0]]!; return y < top }) else {
+                    continue
+                }
+                let height = heights[rules[row]]!
+                if RowReorder.shouldMove(from: dragged, to: row, y: y - (top - height), height: height) {
+                    rules.move(from: dragged, to: row)
+                    dragged = row
+                    moves += 1
+                }
+            }
+        }
+        XCTAssertEqual(rules, ["b", "c", "a"])
+        XCTAssertEqual(moves, 2)
+    }
+
+    func testDraggingDownPastRowsAndBackUpLeavesTheRowWhereThePointerStops() {
+        var rules = ["a", "b", "c", "d"]
+        var dragged = 0
+        for entered in [1, 2, 3, 1] {
+            rules.move(from: dragged, to: entered)
+            dragged = entered
+        }
+        XCTAssertEqual(rules, ["b", "a", "c", "d"])
+    }
 }
 
 final class DiaAppleEventsTests: XCTestCase {

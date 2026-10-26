@@ -45,6 +45,7 @@ struct RulesTab: View {
     @AppStorage("zenProfiles") private var zenProfiles: [ChromeProfile] = []
 
     @State private var editor: ListEditor?
+    @State private var draggedRow: Int?
     @State private var accessibilityGranted: Bool?
     @Environment(\.openSettingsItem) private var openSettingsItem
 
@@ -110,7 +111,7 @@ struct RulesTab: View {
                             rules.remove(at: index)
                         }
                     }
-                    .reorderable(at: index, count: rules.count) { rules.move(from: $0, to: $1) }
+                    .reorderable(at: index, count: rules.count, draggedRow: $draggedRow) { rules.move(from: $0, to: $1) }
                     .settingsItem(SettingsItemID.rule(index))
                 }
             } header: {
@@ -125,7 +126,7 @@ struct RulesTab: View {
                     .settingsItem("rules.add")
                 }
             } footer: {
-                Text("Rules are checked from top to bottom, and the first one that matches opens the link without the picker. Drag a rule onto another to change the order. Hold ⌘ when you click a link to skip your rules.")
+                Text("Rules are checked from top to bottom, and the first one that matches opens the link without the picker. Drag a rule by its handle to change the order. Hold ⌘ when you click a link to skip your rules.")
             }
         }
         .onAppear(perform: refreshAccessibility)
