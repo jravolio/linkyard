@@ -32,7 +32,7 @@ Linkyard is a tiny link router for macOS. Make it your default browser, and ever
 ## ✨ Features
 
 - 🪪 **Identities, not just browsers**: the picker shows one row per identity, with each browser that has a matching profile in its own column. Press **1–9** to open an identity in its first browser.
-- 🧭 **Profiles in four browsers**: Chrome profiles, Arc spaces, Dia profiles and Zen containers. Any other browser (Safari, Firefox, Helium, Brave…) shows up as a plain entry.
+- 🧭 **Profiles in five browsers**: Chrome profiles, Arc spaces, Dia profiles, Zen containers and Helium profiles. Any other browser (Safari, Firefox, Brave…) shows up as a plain entry.
 - 🖼️ **A logo per profile**: give each profile its company's logo; the picker draws it with a small badge of the browser it opens in.
 - 🚦 **Rules**: match a link by URL pattern, by the app it was clicked in, or by that app's window title (handy for telling Slack workspaces apart), and send it to a browser and profile without asking.
 - 📱 **Apps**: open links for certain sites straight in their Mac app.
@@ -69,7 +69,7 @@ Download `Linkyard-<version>.zip` from the [latest release](https://github.com/j
 
 ## 🧩 Set up profiles
 
-Open Settings → **Profiles**. Linkyard detects your Chrome profiles, Arc spaces, Dia profiles and Zen containers; rename them, hide the ones you don't use, and click the icon next to each one to give it a logo. Profiles with the same name in different browsers become one identity in the picker.
+Open Settings → **Profiles**. Linkyard detects your Chrome profiles, Arc spaces, Dia profiles, Zen containers and Helium profiles; rename them, hide the ones you don't use, and click the icon next to each one to give it a logo. Profiles with the same name in different browsers become one identity in the picker.
 
 <details>
 <summary><b>Dia</b></summary>
@@ -88,9 +88,9 @@ Zen keeps each identity in a container, and Linkyard opens links in a container 
 </details>
 
 <details>
-<summary><b>Arc and Chrome</b></summary>
+<summary><b>Arc, Chrome and Helium</b></summary>
 
-Nothing to set up. Arc spaces are opened through AppleScript; Chrome profiles with Chrome's `--profile-directory` flag.
+Nothing to set up. Arc spaces are opened through AppleScript; Chrome and Helium profiles with Chromium's `--profile-directory` flag.
 </details>
 
 ## 🔨 Build from source
@@ -148,4 +148,4 @@ Browserino itself, which Linkyard is built on, was written by Aleksandr Strizhne
 - Zen support relies on [Open external links in a container](https://addons.mozilla.org/firefox/addon/open-url-in-container/).
 - Updates use [Sparkle](https://sparkle-project.org) (MIT license).
 
-<sub>Linkyard is an independent community project. It isn't affiliated with Browserino's author, The Browser Company (Arc, Dia), Google (Chrome), the Zen Browser project or Apple. Product names belong to their owners.</sub>
+<sub>Linkyard is an independent community project. It isn't affiliated with Browserino's author, The Browser Company (Arc, Dia), Google (Chrome), the Zen Browser project, imput (Helium) or Apple. Product names belong to their owners.</sub>

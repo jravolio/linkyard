@@ -13,7 +13,7 @@
 
 | Kind | Browser | How |
 |---|---|---|
-| `chromium` | Chrome | `--profile-directory=<dir>` on a new app instance |
+| `chromium` | Chrome, Helium | `--profile-directory=<dir>` on a new app instance |
 | `arc` | Arc | AppleScript: focus the space by ID, make a tab |
 | `dia` | Dia | Apple Events built by hand (`AppleEvents`): make a tab in the profile found by name, which also switches to it (Dia refuses the command-line flag) |
 | `zenContainers` | Zen | `ext+container:name=…&url=…`, handled by the "Open external links in a container" add-on; Zen's `force-container-workspace` pref moves the tab to its workspace |
@@ -22,7 +22,7 @@ Any other browser opens the link with `NSWorkspace`, optionally with its private
 
 ## Profiles
 
-`ChromiumProfileUtil` (`Models/ChromeProfile.swift`) detects each source's profiles: Chrome from `Local State`, Arc spaces from `StorableSidebar.json` (cached by modification date), Dia by asking Dia over Apple Events when it's running (falling back to `Local State`), and Zen containers from the default Zen profile's `containers.json`. Detected profiles are merged with the stored ones so names, visibility and logos survive.
+`ChromiumProfileUtil` (`Models/ChromeProfile.swift`) detects each source's profiles: Chrome and Helium from `Local State`, Arc spaces from `StorableSidebar.json` (cached by modification date), Dia by asking Dia over Apple Events when it's running (falling back to `Local State`), and Zen containers from the default Zen profile's `containers.json`. Detected profiles are merged with the stored ones so names, visibility and logos survive.
 
 ## Settings
 

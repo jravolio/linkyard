@@ -15,6 +15,8 @@ struct ProfilesTab: View {
     @AppStorage("diaProfilesEnabled") private var diaProfilesEnabled: Bool = true
     @AppStorage("zenProfiles") private var zenProfiles: [ChromeProfile] = []
     @AppStorage("zenProfilesEnabled") private var zenProfilesEnabled: Bool = true
+    @AppStorage("heliumProfiles") private var heliumProfiles: [ChromeProfile] = []
+    @AppStorage("heliumProfilesEnabled") private var heliumProfilesEnabled: Bool = true
 
     var body: some View {
         SettingsForm {
@@ -42,6 +44,12 @@ struct ProfilesTab: View {
                 profiles: $zenProfiles,
                 profilesEnabled: $zenProfilesEnabled,
                 note: "Opening a container needs the “Open external links in a container” add-on in Zen."
+            )
+
+            ProfileSourceSection(
+                source: ChromiumProfileUtil.heliumSource,
+                profiles: $heliumProfiles,
+                profilesEnabled: $heliumProfilesEnabled
             )
 
             Section {

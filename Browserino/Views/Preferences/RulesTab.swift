@@ -43,6 +43,7 @@ struct RulesTab: View {
     @AppStorage("arcProfiles") private var arcProfiles: [ChromeProfile] = []
     @AppStorage("diaProfiles") private var diaProfiles: [ChromeProfile] = []
     @AppStorage("zenProfiles") private var zenProfiles: [ChromeProfile] = []
+    @AppStorage("heliumProfiles") private var heliumProfiles: [ChromeProfile] = []
 
     @State private var editor: ListEditor?
     @State private var draggedRow: Int?
@@ -55,6 +56,7 @@ struct RulesTab: View {
             ChromiumProfileUtil.arcBundleID: arcProfiles,
             ChromiumProfileUtil.diaBundleID: diaProfiles,
             ChromiumProfileUtil.zenBundleID: zenProfiles,
+            ChromiumProfileUtil.heliumBundleID: heliumProfiles,
         ]
     }
 
