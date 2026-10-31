@@ -156,6 +156,7 @@ private struct SettingsSidebar: View {
     @AppStorage("arcProfiles") private var arcProfiles: [ChromeProfile] = []
     @AppStorage("diaProfiles") private var diaProfiles: [ChromeProfile] = []
     @AppStorage("zenProfiles") private var zenProfiles: [ChromeProfile] = []
+    @AppStorage("heliumProfiles") private var heliumProfiles: [ChromeProfile] = []
 
     private var results: [SettingsSearchItem] {
         SettingsSearch.results(
@@ -167,6 +168,7 @@ private struct SettingsSidebar: View {
                     (ChromiumProfileUtil.arcSource, arcProfiles),
                     (ChromiumProfileUtil.diaSource, diaProfiles),
                     (ChromiumProfileUtil.zenSource, zenProfiles),
+                    (ChromiumProfileUtil.heliumSource, heliumProfiles),
                 ].filter { ChromiumProfileUtil.appURL(for: $0.0) != nil },
                 rules: rules,
                 apps: apps

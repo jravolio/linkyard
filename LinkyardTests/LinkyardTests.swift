@@ -80,6 +80,10 @@ final class BrowserLinkTests: XCTestCase {
         XCTAssertEqual(items.first { $0.name == "url" }?.value, link.absoluteString)
     }
 
+    func testHeliumIsAPlainChromiumSource() {
+        XCTAssertEqual(ChromiumProfileUtil.source(for: ChromiumProfileUtil.heliumBundleID)?.kind, .chromium)
+    }
+
     func testAppleScriptStringsEscapeQuotesAndBackslashes() {
         XCTAssertEqual(BrowserUtil.escapeAppleScriptString(#"say "hi" \ bye"#), #"say \"hi\" \\ bye"#)
     }

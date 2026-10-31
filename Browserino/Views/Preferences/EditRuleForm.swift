@@ -29,6 +29,8 @@ struct RuleForm: View {
     @AppStorage("diaProfilesEnabled") private var diaProfilesEnabled: Bool = true
     @AppStorage("zenProfiles") private var zenProfiles: [ChromeProfile] = []
     @AppStorage("zenProfilesEnabled") private var zenProfilesEnabled: Bool = true
+    @AppStorage("heliumProfiles") private var heliumProfiles: [ChromeProfile] = []
+    @AppStorage("heliumProfilesEnabled") private var heliumProfilesEnabled: Bool = true
     @AppStorage("shortcuts") private var shortcuts: [String: String] = [:]
     @AppStorage("browsers") private var browsers: [URL] = []
 
@@ -68,6 +70,8 @@ struct RuleForm: View {
             return (diaProfiles, diaProfilesEnabled)
         case ChromiumProfileUtil.zenBundleID:
             return (zenProfiles, zenProfilesEnabled)
+        case ChromiumProfileUtil.heliumBundleID:
+            return (heliumProfiles, heliumProfilesEnabled)
         default:
             return nil
         }

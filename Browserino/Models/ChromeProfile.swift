@@ -49,6 +49,7 @@ class ChromiumProfileUtil {
     static let arcBundleID = "company.thebrowser.Browser"
     static let diaBundleID = "company.thebrowser.dia"
     static let zenBundleID = "app.zen-browser.zen"
+    static let heliumBundleID = "net.imput.helium"
 
     static let chromeSource = ChromiumProfileSource(
         bundleID: chromeBundleID,
@@ -82,7 +83,15 @@ class ChromiumProfileUtil {
         kind: .zenContainers
     )
 
-    static let sources = [chromeSource, arcSource, diaSource, zenSource]
+    static let heliumSource = ChromiumProfileSource(
+        bundleID: heliumBundleID,
+        displayName: "Helium",
+        localStatePath: "~/Library/Application Support/net.imput.helium/Local State",
+        profileLabel: "profiles",
+        kind: .chromium
+    )
+
+    static let sources = [chromeSource, arcSource, diaSource, zenSource, heliumSource]
 
     /// Each browser in `browsers` that Linkyard opens links in through Apple Events, once.
     static func appleEventsBrowsers(in browsers: [URL]) -> [(app: URL, source: ChromiumProfileSource)] {

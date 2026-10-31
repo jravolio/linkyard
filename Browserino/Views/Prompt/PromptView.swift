@@ -43,6 +43,8 @@ struct PromptView: View {
     @AppStorage("diaProfilesEnabled") private var diaProfilesEnabled: Bool = true
     @AppStorage("zenProfiles") private var zenProfiles: [ChromeProfile] = []
     @AppStorage("zenProfilesEnabled") private var zenProfilesEnabled: Bool = true
+    @AppStorage("heliumProfiles") private var heliumProfiles: [ChromeProfile] = []
+    @AppStorage("heliumProfilesEnabled") private var heliumProfilesEnabled: Bool = true
 
     @AppStorage("copy_closeAfterCopy") private var closeAfterCopy: Bool = false
     @AppStorage("copy_alternativeShortcut") private var alternativeShortcut: Bool = false
@@ -89,6 +91,8 @@ struct PromptView: View {
             return (diaProfiles, diaProfilesEnabled)
         case ChromiumProfileUtil.zenBundleID:
             return (zenProfiles, zenProfilesEnabled)
+        case ChromiumProfileUtil.heliumBundleID:
+            return (heliumProfiles, heliumProfilesEnabled)
         default:
             return nil
         }
