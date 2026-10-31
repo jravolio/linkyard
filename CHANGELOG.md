@@ -2,7 +2,7 @@
 
 Linkyard is a modified version of [Browserino](https://github.com/AlexStrNik/Browserino) by Aleksandr Strizhnev, released under the same GPL-3.0 license. This file lists what Linkyard changed.
 
-## Unreleased
+## 1.3.2 - 2026-10-31
 
 ### Added
 - Helium profiles: Settings → Profiles detects them, and rules and the picker open links in a Helium profile the same way as in Chrome.
